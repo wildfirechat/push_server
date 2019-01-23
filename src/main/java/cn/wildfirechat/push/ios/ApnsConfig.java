@@ -6,7 +6,7 @@ import org.springframework.context.annotation.PropertySource;
 
 @Configuration
 @ConfigurationProperties(prefix="apns")
-@PropertySource(value = "classpath:apns.properties")
+@PropertySource(value = "file:config/apns.properties")
 public class ApnsConfig {
     String productCerPath;
     String productCerPwd;

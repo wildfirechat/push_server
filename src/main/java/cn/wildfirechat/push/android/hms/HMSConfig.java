@@ -6,7 +6,7 @@ import org.springframework.context.annotation.PropertySource;
 
 @Configuration
 @ConfigurationProperties(prefix="hms")
-@PropertySource(value = "classpath:hms.properties")
+@PropertySource(value = "file:config/hms.properties")
 public class HMSConfig {
     private String appSecret;
     private String appId;

@@ -6,7 +6,7 @@ import org.springframework.context.annotation.PropertySource;
 
 @Configuration
 @ConfigurationProperties(prefix="meizu")
-@PropertySource(value = "classpath:meizu.properties")
+@PropertySource(value = "file:config/meizu.properties")
 public class MeiZuConfig {
     private String appSecret;
     private long appId;

@@ -6,7 +6,7 @@ import org.springframework.context.annotation.PropertySource;
 
 @Configuration
 @ConfigurationProperties(prefix="xiaomi")
-@PropertySource(value = "classpath:xiaomi.properties")
+@PropertySource(value = "file:config/xiaomi.properties")
 public class XiaomiConfig {
     private String appSecret;
 
