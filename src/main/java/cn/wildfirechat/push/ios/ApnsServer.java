@@ -186,12 +186,12 @@ public class ApnsServer implements ApnsDelegate {
             final ApnsNotification goodMsg = service.push(service == voipSvc ? pushMessage.getVoipDeviceToken() : pushMessage.getDeviceToken(), payload, null);
             LOG.info("Message id: " + goodMsg.getIdentifier());
 
-
-            //检查key到期日期
-            final Map<String, Date> inactiveDevices = service.getInactiveDevices();
-            for (final Map.Entry<String, Date> ent : inactiveDevices.entrySet()) {
-                LOG.info("Inactive " + ent.getKey() + " at date " + ent.getValue());
-            }
+//
+//            //检查key到期日期
+//            final Map<String, Date> inactiveDevices = service.getInactiveDevices();
+//            for (final Map.Entry<String, Date> ent : inactiveDevices.entrySet()) {
+//                LOG.info("Inactive " + ent.getKey() + " at date " + ent.getValue());
+//            }
         });
 
     }
