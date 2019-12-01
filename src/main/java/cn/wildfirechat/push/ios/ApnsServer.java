@@ -2,8 +2,14 @@ package cn.wildfirechat.push.ios;
 
 import cn.wildfirechat.push.PushMessage;
 import cn.wildfirechat.push.PushMessageType;
-import com.notnoop.apns.*;
-import com.notnoop.exceptions.ApnsDeliveryErrorException;
+import com.turo.pushy.apns.*;
+import com.turo.pushy.apns.metrics.micrometer.MicrometerApnsClientMetricsListener;
+import com.turo.pushy.apns.util.ApnsPayloadBuilder;
+import com.turo.pushy.apns.util.SimpleApnsPushNotification;
+import com.turo.pushy.apns.util.concurrent.PushNotificationFuture;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.GenericFutureListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,57 +17,31 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import javax.annotation.PostConstruct;
-import java.util.Date;
-import java.util.Map;
+import java.io.File;
+import java.io.IOException;
+import java.util.Calendar;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static com.notnoop.apns.DeliveryError.INVALID_TOKEN;
+import static java.lang.System.exit;
 
 @Component
-public class ApnsServer implements ApnsDelegate {
+public class ApnsServer  {
     private static final Logger LOG = LoggerFactory.getLogger(ApnsServer.class);
     private static ExecutorService mExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 5);
-    @Override
-    public void messageSent(ApnsNotification message, boolean resent) {
-        LOG.info("APNS push sent:{}", message.getDeviceToken());
-    }
 
-    @Override
-    public void messageSendFailed(ApnsNotification message, Throwable e) {
-        LOG.info("APNS push failure:{}", e.getMessage());
-        if(e instanceof ApnsDeliveryErrorException) {
-            ApnsDeliveryErrorException apnsDeliveryErrorException = (ApnsDeliveryErrorException)e;
-            LOG.info("APNS error code:{}", apnsDeliveryErrorException.getDeliveryError());
-            if (apnsDeliveryErrorException.getDeliveryError() == INVALID_TOKEN) {
-                if (message.getDeviceId() != null) {
-                    LOG.error("Invalide token!!!");
-                } else {
-                    LOG.error("APNS ERROR without deviceId:{}", message);
-                }
-            }
+    final SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+    final MicrometerApnsClientMetricsListener productMetricsListener =
+            new MicrometerApnsClientMetricsListener(meterRegistry,
+                    "notifications", "apns_product");
+    final MicrometerApnsClientMetricsListener developMetricsListener =
+            new MicrometerApnsClientMetricsListener(meterRegistry,
+                    "notifications", "apns_develop");
 
-        }
-    }
-
-    @Override
-    public void connectionClosed(DeliveryError e, int messageIdentifier) {
-        LOG.info("111");
-    }
-
-    @Override
-    public void cacheLengthExceeded(int newCacheLength) {
-        LOG.info("111");
-    }
-
-    @Override
-    public void notificationsResent(int resendCount) {
-        LOG.info("111");
-    }
-
-    ApnsService productSvc;
-    ApnsService developSvc;
-    ApnsService voipSvc;
+    ApnsClient productSvc;
+    ApnsClient developSvc;
+    ApnsClient productVoipSvc;
+    ApnsClient developVoipSvc;
 
     @Autowired
     private ApnsConfig mConfig;
@@ -76,29 +56,36 @@ public class ApnsServer implements ApnsDelegate {
             mConfig.alert = "default";
         }
 
-        productSvc = APNS.newService()
-                .asBatched(3, 10)
-                .withAppleDestination(true)
-                .withCert(mConfig.productCerPath, mConfig.productCerPwd)
-                .withDelegate(this)
-                .build();
+        try {
+            productSvc = new ApnsClientBuilder()
+                    .setApnsServer(ApnsClientBuilder.PRODUCTION_APNS_HOST)
+                    .setClientCredentials(new File(mConfig.cerPath), mConfig.cerPwd)
+                    .setMetricsListener(productMetricsListener)
+                    .build();
 
-        developSvc = APNS.newService()
-                .asBatched(3, 10)
-                .withAppleDestination(false)
-                .withCert(mConfig.developCerPath, mConfig.developCerPwd)
-                .withDelegate(this)
-                .build();
+            developSvc = new ApnsClientBuilder()
+                    .setApnsServer(ApnsClientBuilder.DEVELOPMENT_APNS_HOST)
+                    .setClientCredentials(new File(mConfig.cerPath), mConfig.cerPwd)
+                    .setMetricsListener(developMetricsListener)
+                    .build();
 
-        voipSvc = APNS.newService()
-                .withAppleDestination(true)
-                .withCert(mConfig.voipCerPath, mConfig.voipCerPwd)
-                .withDelegate(this)
-                .build();
+            if (mConfig.voipFeature) {
+                productVoipSvc = new ApnsClientBuilder()
+                        .setApnsServer(ApnsClientBuilder.PRODUCTION_APNS_HOST)
+                        .setClientCredentials(new File(mConfig.voipCerPath), mConfig.voipCerPwd)
+                        .setMetricsListener(productMetricsListener)
+                        .build();
+                developSvc = new ApnsClientBuilder()
+                        .setApnsServer(ApnsClientBuilder.DEVELOPMENT_APNS_HOST)
+                        .setClientCredentials(new File(mConfig.voipCerPath), mConfig.voipCerPwd)
+                        .setMetricsListener(developMetricsListener)
+                        .build();
+            }
 
-        productSvc.start();
-        developSvc.start();
-        voipSvc.start();
+        } catch (IOException e) {
+            e.printStackTrace();
+            exit(-1);
+        }
     }
 
 
@@ -110,12 +97,18 @@ public class ApnsServer implements ApnsDelegate {
                 LOG.error("等待太久，消息抛弃");
                 return;
             }
-            ApnsService service = developSvc;
+            ApnsClient service;
             if (pushMessage.getPushType() == IOSPushType.IOS_PUSH_TYPE_DISTRIBUTION) {
-                if (pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_NORMAL || StringUtils.isEmpty(pushMessage.getVoipDeviceToken())) {
+                if (!mConfig.voipFeature || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_NORMAL || StringUtils.isEmpty(pushMessage.getVoipDeviceToken())) {
                     service = productSvc;
                 } else {
-                    service = voipSvc;
+                    service = productVoipSvc;
+                }
+            } else {
+                if (!mConfig.voipFeature || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_NORMAL || StringUtils.isEmpty(pushMessage.getVoipDeviceToken())) {
+                    service = developSvc;
+                } else {
+                    service = developVoipSvc;
                 }
             }
 
@@ -127,12 +120,15 @@ public class ApnsServer implements ApnsDelegate {
             String sound = mConfig.alert;
 
             String pushContent = pushMessage.getPushContent();
+            boolean hiddenDetail = pushMessage.isHiddenDetail;
             if (pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_VOIP_INVITE) {
                 pushContent = "通话邀请";
                 sound = mConfig.voipAlert;
+                hiddenDetail = false;
             } else if(pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_VOIP_BYE) {
                 pushContent = "通话结束";
                 sound = null;
+                hiddenDetail = false;
             }
 
             int badge = pushMessage.getUnReceivedMsg();
@@ -160,6 +156,10 @@ public class ApnsServer implements ApnsDelegate {
                     body = pushMessage.senderName + ":" + pushContent;
                 }
 
+                if (hiddenDetail) {
+                    body = "你收到一条新消息"; //Todo 需要判断当前语言
+                }
+
                 if (pushMessage.mentionedType == 1) {
                     if (StringUtils.isEmpty(pushMessage.senderName)) {
                         body = "有人在群里@了你";
@@ -179,19 +179,68 @@ public class ApnsServer implements ApnsDelegate {
                 } else {
                     title = pushMessage.senderName;
                 }
-                body = pushContent;
+                if (hiddenDetail) {
+                    body = "你收到一条新消息"; //Todo 需要判断当前语言
+                } else {
+                    body = pushContent;
+                }
             }
 
-            final String payload = APNS.newPayload().alertBody(body).badge(badge).alertTitle(title).sound(sound).build();
-            final ApnsNotification goodMsg = service.push(service == voipSvc ? pushMessage.getVoipDeviceToken() : pushMessage.getDeviceToken(), payload, null);
-            LOG.info("Message id: " + goodMsg.getIdentifier());
+            final ApnsPayloadBuilder payloadBuilder = new ApnsPayloadBuilder();
+            payloadBuilder.setAlertBody(body);
+            payloadBuilder.setAlertTitle(title);
+            payloadBuilder.setBadgeNumber(badge);
+            payloadBuilder.setSound(sound);
 
-//
-//            //检查key到期日期
-//            final Map<String, Date> inactiveDevices = service.getInactiveDevices();
-//            for (final Map.Entry<String, Date> ent : inactiveDevices.entrySet()) {
-//                LOG.info("Inactive " + ent.getKey() + " at date " + ent.getValue());
-//            }
+            final String payload = payloadBuilder.buildWithDefaultMaximumLength();
+            final String token;
+            if (service == productVoipSvc || service == developVoipSvc) {
+                token = pushMessage.voipDeviceToken;
+            } else {
+                token = pushMessage.deviceToken;
+            }
+
+            Calendar c = Calendar.getInstance();
+
+
+            ApnsPushNotification pushNotification;
+
+            if (!mConfig.voipFeature || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_NORMAL || StringUtils.isEmpty(pushMessage.getVoipDeviceToken())) {
+                if(pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_NORMAL || StringUtils.isEmpty(pushMessage.getVoipDeviceToken())) {
+                    c.add(Calendar.MINUTE, 10); //普通推送
+                    pushNotification = new SimpleApnsPushNotification(token, pushMessage.packageName, payload, c.getTime(), DeliveryPriority.CONSERVE_POWER, PushType.ALERT);
+                } else {
+                    c.add(Calendar.MINUTE, 1); //voip通知，使用普通推送
+                    pushNotification = new SimpleApnsPushNotification(token, pushMessage.packageName, payload, c.getTime(), DeliveryPriority.IMMEDIATE, PushType.ALERT);
+                }
+
+            } else {
+                c.add(Calendar.MINUTE, 1);
+                pushNotification = new SimpleApnsPushNotification(token, pushMessage.packageName + ".voip", payload, c.getTime(), DeliveryPriority.IMMEDIATE, PushType.VOIP);
+            }
+
+
+            final PushNotificationFuture<ApnsPushNotification, PushNotificationResponse<ApnsPushNotification>>
+                    sendNotificationFuture = service.sendNotification(pushNotification);
+            sendNotificationFuture.addListener(new GenericFutureListener<Future<? super PushNotificationResponse<ApnsPushNotification>>>() {
+                @Override
+                public void operationComplete(Future<? super PushNotificationResponse<ApnsPushNotification>> future) throws Exception {
+                    // When using a listener, callers should check for a failure to send a
+                    // notification by checking whether the future itself was successful
+                    // since an exception will not be thrown.
+                    if (future.isSuccess()) {
+                        final PushNotificationResponse<ApnsPushNotification> pushNotificationResponse =
+                                sendNotificationFuture.getNow();
+
+                        // Handle the push notification response as before from here.
+                    } else {
+                        // Something went wrong when trying to send the notification to the
+                        // APNs gateway. We can find the exception that caused the failure
+                        // by getting future.cause().
+                        future.cause().printStackTrace();
+                    }
+                }
+            });
         });
 
     }

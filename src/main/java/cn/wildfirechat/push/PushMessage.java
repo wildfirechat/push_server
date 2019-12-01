@@ -20,6 +20,7 @@ public class PushMessage {
     public String packageName;
     public String deviceToken;
     public String voipDeviceToken;
+    public boolean isHiddenDetail;
     public String language;
 
 
@@ -149,6 +150,14 @@ public class PushMessage {
 
     public void setVoipDeviceToken(String voipDeviceToken) {
         this.voipDeviceToken = voipDeviceToken;
+    }
+
+    public boolean isHiddenDetail() {
+        return isHiddenDetail;
+    }
+
+    public void setHiddenDetail(boolean hiddenDetail) {
+        isHiddenDetail = hiddenDetail;
     }
 
     public String getLanguage() {

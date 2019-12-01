@@ -132,7 +132,27 @@
 			<artifactId>jackson-annotations</artifactId>
 			<version>2.9.8</version>
 		</dependency>
-	</dependencies>
+
+
+		<dependency>
+			<groupId>com.turo</groupId>
+			<artifactId>pushy</artifactId>
+			<version>0.13.10</version>
+		</dependency>
+
+        <dependency>
+            <groupId>com.turo</groupId>
+            <artifactId>pushy-micrometer-metrics-listener</artifactId>
+            <version>0.13.10</version>
+        </dependency>
+
+<!--		   <dependency>-->
+<!--                <groupId>io.netty</groupId>-->
+<!--                <artifactId>netty-tcnative-boringssl-static</artifactId>-->
+<!--                <version>2.0.25.Final</version>-->
+<!--			    <scope>runtime</scope>-->
+<!--           </dependency>-->
+    </dependencies>
 
 	<build>
 		<plugins>

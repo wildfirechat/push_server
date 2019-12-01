@@ -31,6 +31,8 @@ public class XiaomiPush {
         Sender sender = new Sender(mConfig.getAppSecret());
 
         Message message;
+        String token = pushMessage.getDeviceToken();
+        pushMessage.deviceToken = null;
         if(pushMessage.pushMessageType != PushMessageType.PUSH_MESSAGE_TYPE_NORMAL) {
             //voip
             long timeToLive = 60 * 1000; // 1 min
@@ -57,7 +59,7 @@ public class XiaomiPush {
 
         Result result = null;
         try {
-            result = sender.send(message, pushMessage.getDeviceToken(), 3);
+            result = sender.send(message, token, 3);
         } catch (IOException e) {
             e.printStackTrace();
         } catch (ParseException e) {

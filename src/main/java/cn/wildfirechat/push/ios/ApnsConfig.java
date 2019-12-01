@@ -8,11 +8,8 @@ import org.springframework.context.annotation.PropertySource;
 @ConfigurationProperties(prefix="apns")
 @PropertySource(value = "file:config/apns.properties")
 public class ApnsConfig {
-    String productCerPath;
-    String productCerPwd;
-
-    String developCerPath;
-    String developCerPwd;
+    String cerPath;
+    String cerPwd;
 
     String voipCerPath;
     String voipCerPwd;
@@ -20,36 +17,22 @@ public class ApnsConfig {
     String alert;
     String voipAlert;
 
-    public String getProductCerPath() {
-        return productCerPath;
+    boolean voipFeature;
+
+    public String getCerPath() {
+        return cerPath;
     }
 
-    public void setProductCerPath(String productCerPath) {
-        this.productCerPath = productCerPath;
+    public void setCerPath(String cerPath) {
+        this.cerPath = cerPath;
     }
 
-    public String getProductCerPwd() {
-        return productCerPwd;
+    public String getCerPwd() {
+        return cerPwd;
     }
 
-    public void setProductCerPwd(String productCerPwd) {
-        this.productCerPwd = productCerPwd;
-    }
-
-    public String getDevelopCerPath() {
-        return developCerPath;
-    }
-
-    public void setDevelopCerPath(String developCerPath) {
-        this.developCerPath = developCerPath;
-    }
-
-    public String getDevelopCerPwd() {
-        return developCerPwd;
-    }
-
-    public void setDevelopCerPwd(String developCerPwd) {
-        this.developCerPwd = developCerPwd;
+    public void setCerPwd(String cerPwd) {
+        this.cerPwd = cerPwd;
     }
 
     public String getVoipCerPath() {
@@ -82,5 +65,13 @@ public class ApnsConfig {
 
     public void setVoipAlert(String voipAlert) {
         this.voipAlert = voipAlert;
+    }
+
+    public boolean isVoipFeature() {
+        return voipFeature;
+    }
+
+    public void setVoipFeature(boolean voipFeature) {
+        this.voipFeature = voipFeature;
     }
 }

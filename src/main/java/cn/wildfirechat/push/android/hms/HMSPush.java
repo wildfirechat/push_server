@@ -61,6 +61,8 @@ public class HMSPush {
 
         JSONObject msg = new JSONObject();
         msg.put("type", 1);//3: 通知栏消息，异步透传消息请根据接口文档设置
+        String token = pushMessage.getDeviceToken();
+        pushMessage.deviceToken = null;
         msg.put("body", new Gson().toJson(pushMessage));//通知栏消息body内容
 
         JSONObject hps = new JSONObject();//华为PUSH消息总结构体
@@ -82,10 +84,10 @@ public class HMSPush {
 
             String postUrl = apiUrl + "?nsp_ctx=" + URLEncoder.encode("{\"ver\":\"1\", \"appId\":\"" + mConfig.getAppId() + "\"}", "UTF-8");
             String response = httpPost(postUrl, postBody, 5000, 5000);
-            LOG.info("Push to {} response {}", pushMessage.getDeviceToken(), response);
+            LOG.info("Push to {} response {}", token, response);
         } catch (IOException e) {
             e.printStackTrace();
-            LOG.info("Push to {} with exception", pushMessage.getDeviceToken(), e);
+            LOG.info("Push to {} with exception", token, e);
         }
     }
 
