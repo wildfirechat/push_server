@@ -174,11 +174,20 @@ public class ApnsServer  {
                     }
                 }
             } else {
-                if (StringUtils.isEmpty(pushMessage.senderName)) {
-                    title = "消息";
+                if (pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_FRIEND_REQUEST) {
+                    if (StringUtils.isEmpty(pushMessage.senderName)) {
+                        title = "好友请求";
+                    } else {
+                        title = pushMessage.senderName + " 请求加您为好友";
+                    }
                 } else {
-                    title = pushMessage.senderName;
+                    if (StringUtils.isEmpty(pushMessage.senderName)) {
+                        title = "消息";
+                    } else {
+                        title = pushMessage.senderName;
+                    }
                 }
+
                 if (hiddenDetail) {
                     body = "你收到一条新消息"; //Todo 需要判断当前语言
                 } else {

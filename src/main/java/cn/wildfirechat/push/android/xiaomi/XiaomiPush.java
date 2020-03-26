@@ -33,7 +33,7 @@ public class XiaomiPush {
         Message message;
         String token = pushMessage.getDeviceToken();
         pushMessage.deviceToken = null;
-        if(pushMessage.pushMessageType != PushMessageType.PUSH_MESSAGE_TYPE_NORMAL) {
+        if(pushMessage.pushMessageType != PushMessageType.PUSH_MESSAGE_TYPE_NORMAL && pushMessage.pushMessageType != PushMessageType.PUSH_MESSAGE_TYPE_FRIEND_REQUEST) {
             //voip
             long timeToLive = 60 * 1000; // 1 min
             message = new Message.Builder()

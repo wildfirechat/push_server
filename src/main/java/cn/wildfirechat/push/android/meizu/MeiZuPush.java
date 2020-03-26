@@ -1,6 +1,7 @@
 package cn.wildfirechat.push.android.meizu;
 
 import cn.wildfirechat.push.PushMessage;
+import cn.wildfirechat.push.PushMessageType;
 import com.meizu.push.sdk.server.IFlymePush;
 import com.meizu.push.sdk.server.constant.ResultPack;
 import com.meizu.push.sdk.server.model.push.PushResult;
@@ -9,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
@@ -31,9 +33,24 @@ public class MeiZuPush {
 
     public void push(PushMessage pushMessage) {
         //组装透传消息
+        String title;
+        if (pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_FRIEND_REQUEST) {
+            if (StringUtils.isEmpty(pushMessage.senderName)) {
+                title = "好友请求";
+            } else {
+                title = pushMessage.senderName + " 请求加您为好友";
+            }
+        } else {
+            if (StringUtils.isEmpty(pushMessage.senderName)) {
+                title = "消息";
+            } else {
+                title = pushMessage.senderName;
+            }
+        }
+
         VarnishedMessage message = new VarnishedMessage.Builder()
             .appId(mConfig.getAppId())
-            .title("WildfireChat")
+            .title(title)
             .content(pushMessage.pushContent)
             .validTime(1)
             .build();
