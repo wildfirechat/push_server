@@ -6,6 +6,7 @@
 
 为了满足各种各样的需求，提供足够好的灵活性，野火IM把推送子系统独立出来，客户只要理解了推送子系统运行的原理，就能做好各种自定义处理。
 ![架构图](https://docs.wildfirechat.cn/architecture/wildfire_architecture.png)
+> 如果架构图无法查看，可以点击[这里](https://docs.wildfirechat.cn/architecture/wildfire_architecture.png)查看
 
 图中紫色部分为推送子系统，推送子系统的所有源码都是开源的，且可以随意修改。推送子系统的工作流程如下：
 1. 应用启动后，推送SDK初始化，判断采用那种推送服务，比如华为手机就用华为推送，小米手机就用小米推送，或者全部或部分使用第三方推送。如果客户要加谷歌推送也是在这里添加。选定好推送厂商后，就初始化对应推送厂商的SDK，注册成功后会得到推送token，调用IM SDK的setDeviceToken，传入推送token和类型。注意类型是可以扩展的，而且对IM系统没有任何影响的。
