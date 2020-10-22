@@ -129,6 +129,10 @@ public class ApnsServer  {
                 pushContent = "通话结束";
                 sound = null;
                 hiddenDetail = false;
+            } else  if(pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_VOIP_ANSWER) {
+                pushContent = "已被其他端接听";
+                sound = null;
+                hiddenDetail = false;
             }
 
             int badge = pushMessage.getUnReceivedMsg();
