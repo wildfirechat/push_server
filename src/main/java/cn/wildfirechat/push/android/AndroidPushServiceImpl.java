@@ -1,8 +1,11 @@
 package cn.wildfirechat.push.android;
 
 import cn.wildfirechat.push.PushMessage;
+import cn.wildfirechat.push.android.fcm.FCMPush;
 import cn.wildfirechat.push.android.hms.HMSPush;
 import cn.wildfirechat.push.android.meizu.MeiZuPush;
+import cn.wildfirechat.push.android.oppo.OppoPush;
+import cn.wildfirechat.push.android.vivo.VivoPush;
 import cn.wildfirechat.push.android.xiaomi.XiaomiPush;
 import com.google.gson.Gson;
 import org.slf4j.Logger;
@@ -22,6 +25,14 @@ public class AndroidPushServiceImpl implements AndroidPushService {
     @Autowired
     private XiaomiPush xiaomiPush;
 
+    @Autowired
+    private VivoPush vivoPush;
+
+    @Autowired
+    private OppoPush oppoPush;
+
+    @Autowired
+    private FCMPush fcmPush;
 
     @Override
     public Object push(PushMessage pushMessage) {
@@ -35,6 +46,15 @@ public class AndroidPushServiceImpl implements AndroidPushService {
                 break;
             case AndroidPushType.ANDROID_PUSH_TYPE_MEIZU:
                 meiZuPush.push(pushMessage);
+                break;
+            case AndroidPushType.ANDROID_PUSH_TYPE_VIVO:
+                vivoPush.push(pushMessage);
+                break;
+            case AndroidPushType.ANDROID_PUSH_TYPE_OPPO:
+                oppoPush.push(pushMessage);
+                break;
+            case AndroidPushType.ANDROID_PUSH_TYPE_FCM:
+                fcmPush.push(pushMessage);
                 break;
             default:
                 LOG.info("unknown push type");
