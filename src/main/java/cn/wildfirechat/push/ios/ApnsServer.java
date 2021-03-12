@@ -28,7 +28,6 @@ import static java.lang.System.exit;
 @Component
 public class ApnsServer  {
     private static final Logger LOG = LoggerFactory.getLogger(ApnsServer.class);
-    private static ExecutorService mExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 5);
 
     final SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
     final MicrometerApnsClientMetricsListener productMetricsListener =
@@ -90,13 +89,6 @@ public class ApnsServer  {
 
 
     public void pushMessage(PushMessage pushMessage) {
-        final long start = System.currentTimeMillis();
-        mExecutor.submit(()-> {
-            long now = System.currentTimeMillis();
-            if (now - start > 5000) {
-                LOG.error("等待太久，消息抛弃");
-                return;
-            }
             ApnsClient service;
             if (pushMessage.getPushType() == IOSPushType.IOS_PUSH_TYPE_DISTRIBUTION) {
                 if (!mConfig.voipFeature || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_NORMAL || StringUtils.isEmpty(pushMessage.getVoipDeviceToken())) {
@@ -254,7 +246,5 @@ public class ApnsServer  {
                     }
                 }
             });
-        });
-
     }
 }
