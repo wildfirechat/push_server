@@ -1,6 +1,8 @@
 package cn.wildfirechat.push.android;
 
 import cn.wildfirechat.push.PushMessage;
+import cn.wildfirechat.push.PushMessageType;
+import cn.wildfirechat.push.Utility;
 import cn.wildfirechat.push.android.fcm.FCMPush;
 import cn.wildfirechat.push.android.hms.HMSPush;
 import cn.wildfirechat.push.android.meizu.MeiZuPush;
@@ -46,6 +48,10 @@ public class AndroidPushServiceImpl implements AndroidPushService {
     @Override
     public Object push(PushMessage pushMessage) {
         LOG.info("Android push {}", new Gson().toJson(pushMessage));
+        if(Utility.filterPush(pushMessage)) {
+            LOG.info("canceled");
+            return "Canceled";
+        }
         final long start = System.currentTimeMillis();
         executorService.execute(()->{
             long now = System.currentTimeMillis();

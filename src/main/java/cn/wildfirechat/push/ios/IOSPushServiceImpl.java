@@ -1,6 +1,8 @@
 package cn.wildfirechat.push.ios;
 
 import cn.wildfirechat.push.PushMessage;
+import cn.wildfirechat.push.PushMessageType;
+import cn.wildfirechat.push.Utility;
 import com.google.gson.Gson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +27,10 @@ public class IOSPushServiceImpl implements IOSPushService {
     @Override
     public Object push(PushMessage pushMessage) {
         LOG.info("iOS push {}", new Gson().toJson(pushMessage));
+        if(Utility.filterPush(pushMessage)) {
+            LOG.info("canceled");
+            return "Canceled";
+        }
         final long start = System.currentTimeMillis();
         executorService.execute(()->{
             long now = System.currentTimeMillis();
