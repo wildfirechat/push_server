@@ -74,7 +74,7 @@ public class ApnsServer  {
                         .setClientCredentials(new File(mConfig.voipCerPath), mConfig.voipCerPwd)
                         .setMetricsListener(productMetricsListener)
                         .build();
-                developSvc = new ApnsClientBuilder()
+                developVoipSvc = new ApnsClientBuilder()
                         .setApnsServer(ApnsClientBuilder.DEVELOPMENT_APNS_HOST)
                         .setClientCredentials(new File(mConfig.voipCerPath), mConfig.voipCerPwd)
                         .setMetricsListener(developMetricsListener)
