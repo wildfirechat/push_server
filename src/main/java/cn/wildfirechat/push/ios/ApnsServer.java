@@ -197,7 +197,6 @@ public class ApnsServer  {
             payloadBuilder.setBadgeNumber(badge);
             payloadBuilder.setSound(sound);
 
-            final String payload = payloadBuilder.buildWithDefaultMaximumLength();
             final String token;
             if (service == productVoipSvc || service == developVoipSvc) {
                 token = pushMessage.voipDeviceToken;
@@ -213,14 +212,20 @@ public class ApnsServer  {
             if (!mConfig.voipFeature || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_NORMAL || StringUtils.isEmpty(pushMessage.getVoipDeviceToken())) {
                 if(pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_NORMAL || StringUtils.isEmpty(pushMessage.getVoipDeviceToken())) {
                     c.add(Calendar.MINUTE, 10); //普通推送
+                    String payload = payloadBuilder.buildWithDefaultMaximumLength();
                     pushNotification = new SimpleApnsPushNotification(token, pushMessage.packageName, payload, c.getTime(), DeliveryPriority.CONSERVE_POWER, PushType.ALERT);
                 } else {
                     c.add(Calendar.MINUTE, 1); //voip通知，使用普通推送
-                    pushNotification = new SimpleApnsPushNotification(token, pushMessage.packageName, payload, c.getTime(), DeliveryPriority.IMMEDIATE, PushType.ALERT);
+                    payloadBuilder.setContentAvailable(true);
+                    payloadBuilder.addCustomProperty("voip", true);
+                    payloadBuilder.addCustomProperty("voip_type", pushMessage.pushMessageType);
+                    payloadBuilder.addCustomProperty("voip_data", pushMessage.pushData);
+                    String payload = payloadBuilder.buildWithDefaultMaximumLength();
+                    pushNotification = new SimpleApnsPushNotification(token, pushMessage.packageName, payload, c.getTime(), DeliveryPriority.IMMEDIATE, PushType.BACKGROUND);
                 }
-
             } else {
                 c.add(Calendar.MINUTE, 1);
+                String payload = payloadBuilder.buildWithDefaultMaximumLength();
                 pushNotification = new SimpleApnsPushNotification(token, pushMessage.packageName + ".voip", payload, c.getTime(), DeliveryPriority.IMMEDIATE, PushType.VOIP);
             }
 
