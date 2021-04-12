@@ -90,25 +90,6 @@ public class ApnsServer  {
 
     public void pushMessage(PushMessage pushMessage) {
             ApnsClient service;
-            if (pushMessage.getPushType() == IOSPushType.IOS_PUSH_TYPE_DISTRIBUTION) {
-                if (!mConfig.voipFeature || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_NORMAL || StringUtils.isEmpty(pushMessage.getVoipDeviceToken())) {
-                    service = productSvc;
-                } else {
-                    service = productVoipSvc;
-                }
-            } else {
-                if (!mConfig.voipFeature || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_NORMAL || StringUtils.isEmpty(pushMessage.getVoipDeviceToken())) {
-                    service = developSvc;
-                } else {
-                    service = developVoipSvc;
-                }
-            }
-
-
-            if (service == null) {
-                LOG.error("Service not exist!!!!");
-                return;
-            }
             String sound = mConfig.alert;
 
             String pushContent = pushMessage.getPushContent();
@@ -197,23 +178,19 @@ public class ApnsServer  {
             payloadBuilder.setBadgeNumber(badge);
             payloadBuilder.setSound(sound);
 
-            final String token;
-            if (service == productVoipSvc || service == developVoipSvc) {
-                token = pushMessage.voipDeviceToken;
-            } else {
-                token = pushMessage.deviceToken;
-            }
-
             Calendar c = Calendar.getInstance();
-
-
             ApnsPushNotification pushNotification;
 
             if (!mConfig.voipFeature || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_NORMAL || StringUtils.isEmpty(pushMessage.getVoipDeviceToken())) {
+                if (pushMessage.getPushType() == IOSPushType.IOS_PUSH_TYPE_DISTRIBUTION) {
+                    service = productSvc;
+                } else {
+                    service = developSvc;
+                }
                 if(pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_NORMAL || StringUtils.isEmpty(pushMessage.getVoipDeviceToken())) {
                     c.add(Calendar.MINUTE, 10); //普通推送
                     String payload = payloadBuilder.buildWithDefaultMaximumLength();
-                    pushNotification = new SimpleApnsPushNotification(token, pushMessage.packageName, payload, c.getTime(), DeliveryPriority.CONSERVE_POWER, PushType.ALERT);
+                    pushNotification = new SimpleApnsPushNotification(pushMessage.deviceToken, pushMessage.packageName, payload, c.getTime(), DeliveryPriority.CONSERVE_POWER, PushType.ALERT);
                 } else {
                     c.add(Calendar.MINUTE, 1); //voip通知，使用普通推送
                     payloadBuilder.setContentAvailable(true);
@@ -221,14 +198,23 @@ public class ApnsServer  {
                     payloadBuilder.addCustomProperty("voip_type", pushMessage.pushMessageType);
                     payloadBuilder.addCustomProperty("voip_data", pushMessage.pushData);
                     String payload = payloadBuilder.buildWithDefaultMaximumLength();
-                    pushNotification = new SimpleApnsPushNotification(token, pushMessage.packageName, payload, c.getTime(), DeliveryPriority.IMMEDIATE, PushType.BACKGROUND);
+                    pushNotification = new SimpleApnsPushNotification(pushMessage.deviceToken, pushMessage.packageName, payload, c.getTime(), DeliveryPriority.IMMEDIATE, PushType.BACKGROUND);
                 }
             } else {
+                if (pushMessage.getPushType() == IOSPushType.IOS_PUSH_TYPE_DISTRIBUTION) {
+                    service = productVoipSvc;
+                } else {
+                    service = developVoipSvc;
+                }
                 c.add(Calendar.MINUTE, 1);
                 String payload = payloadBuilder.buildWithDefaultMaximumLength();
-                pushNotification = new SimpleApnsPushNotification(token, pushMessage.packageName + ".voip", payload, c.getTime(), DeliveryPriority.IMMEDIATE, PushType.VOIP);
+                pushNotification = new SimpleApnsPushNotification(pushMessage.voipDeviceToken, pushMessage.packageName + ".voip", payload, c.getTime(), DeliveryPriority.IMMEDIATE, PushType.VOIP);
             }
 
+            if (service == null) {
+                LOG.error("Service not exist!!!!");
+                return;
+            }
 
             final PushNotificationFuture<ApnsPushNotification, PushNotificationResponse<ApnsPushNotification>>
                     sendNotificationFuture = service.sendNotification(pushNotification);
@@ -241,13 +227,15 @@ public class ApnsServer  {
                     if (future.isSuccess()) {
                         final PushNotificationResponse<ApnsPushNotification> pushNotificationResponse =
                                 sendNotificationFuture.getNow();
-
-                        // Handle the push notification response as before from here.
+                        if(!pushNotificationResponse.isAccepted()) {
+                            LOG.error("apns push failure: {}", pushNotificationResponse.getRejectionReason());
+                        }
                     } else {
                         // Something went wrong when trying to send the notification to the
                         // APNs gateway. We can find the exception that caused the failure
                         // by getting future.cause().
                         future.cause().printStackTrace();
+                        LOG.error("apns push failure: {}", future.cause().getLocalizedMessage());
                     }
                 }
             });
