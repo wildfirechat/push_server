@@ -6,6 +6,7 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
 
 public class Utility {
     private static final Logger LOG = LoggerFactory.getLogger(Utility.class);
@@ -33,7 +34,7 @@ public class Utility {
         }
 
         int reason = -1;
-        if (pushData != null) {
+        if (!StringUtils.isEmpty(pushData)) {
             try {
                 JSONObject object = (JSONObject) (new JSONParser().parse(pushData));
                 Object oEndReason = object.get("r");
@@ -48,7 +49,10 @@ public class Utility {
             } catch (ParseException e) {
                 e.printStackTrace();
             }
+        } else {
+            return false;
         }
+
         LOG.info("End call reason is {}, convType is {}", reason, conversationType);
         if(reason > 0) {
             if(conversationType == 0) {
