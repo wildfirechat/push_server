@@ -58,12 +58,26 @@ public class HMSPush {
         JSONArray deviceTokens = new JSONArray();//目标设备Token
         deviceTokens.add(pushMessage.getDeviceToken());
 
+        JSONObject param = new JSONObject();
+        param.put("appPkgName", pushMessage.packageName);//定义需要打开的appPkgName
+        JSONObject action = new JSONObject();
+        action.put("type", 3);//类型3为打开APP，其他行为请参考接口文档设置
+        action.put("param", param);//消息点击动作参数
+
 
         JSONObject msg = new JSONObject();
-        msg.put("type", 1);//3: 通知栏消息，异步透传消息请根据接口文档设置
+        msg.put("type", 3);//3: 通知栏消息，异步透传消息请根据接口文档设置
+        msg.put("action", action);//消息点击动作  add by liguangyu
         String token = pushMessage.getDeviceToken();
         pushMessage.deviceToken = null;
-        msg.put("body", new Gson().toJson(pushMessage));//通知栏消息body内容
+
+        JSONObject body = new JSONObject();//仅通知栏消息需要设置标题和内容，透传消息key和value为用户自定义
+        body.put("title", pushMessage.senderName);//消息标题
+        body.put("content", pushMessage.pushContent);//消息内容体
+        //body.put("info", new Gson().toJson(pushMessage));//消息内容体
+        msg.put("body", body);//通知栏消息body内容示例代码
+        LOG.info("liguangyu test body: {} pushMessage{}",body,new Gson().toJson(pushMessage) );
+        //msg.put("body", new Gson().toJson(pushMessage));//通知栏消息body内容
 
         JSONObject hps = new JSONObject();//华为PUSH消息总结构体
         hps.put("msg", msg);
@@ -135,4 +149,5 @@ public class HMSPush {
             }
         }
     }
+
 }
