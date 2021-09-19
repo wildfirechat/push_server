@@ -34,6 +34,12 @@ public class FCMPush {
 
 
     public void push(PushMessage pushMessage) {
+        if(pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_RECALLED || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_DELETED) {
+            //Todo not implement
+            //撤回或者删除消息，需要更新远程通知，暂未实现
+            return;
+        }
+
         Notification.Builder builder = Notification.builder().setTitle(pushMessage.senderName).setBody(pushMessage.pushContent);
         Message message = Message.builder()
                 .setNotification(builder.build())

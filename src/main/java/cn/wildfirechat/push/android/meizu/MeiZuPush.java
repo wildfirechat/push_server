@@ -32,6 +32,12 @@ public class MeiZuPush {
     private MeiZuConfig mConfig;
 
     public void push(PushMessage pushMessage) {
+        if(pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_RECALLED || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_DELETED) {
+            //Todo not implement
+            //撤回或者删除消息，需要更新远程通知，暂未实现
+            return;
+        }
+
         //组装透传消息
         String title;
         if (pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_FRIEND_REQUEST) {

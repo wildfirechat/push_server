@@ -10,6 +10,9 @@ import com.turo.pushy.apns.util.concurrent.PushNotificationFuture;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -87,10 +90,31 @@ public class ApnsServer  {
         }
     }
 
+    public long getMessageId(PushMessage pushMessage) {
+        try {
+            JSONObject jsonObject = (JSONObject)(new JSONParser().parse(pushMessage.pushData));
+            if(jsonObject.get("messageUid") instanceof Long) {
+                return (Long)jsonObject.get("messageUid");
+            } else if(jsonObject.get("messageUid") instanceof Integer) {
+                return (Integer)jsonObject.get("messageUid");
+            } else if(jsonObject.get("messageUid") instanceof Double) {
+                double uid = (Double)jsonObject.get("messageUid");
+                return (long)uid;
+            }
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
 
     public void pushMessage(PushMessage pushMessage) {
             ApnsClient service;
             String sound = mConfig.alert;
+
+        String collapseId = null;
+        if(pushMessage.messageId > 0) {
+            collapseId = pushMessage.messageId + "";
+        }
 
             String pushContent = pushMessage.getPushContent();
             boolean hiddenDetail = pushMessage.isHiddenDetail;
@@ -106,9 +130,30 @@ public class ApnsServer  {
                 pushContent = "已被其他端接听";
                 sound = null;
                 hiddenDetail = false;
+            } else if(pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_RECALLED) {
+                pushContent = "消息已被撤回";
+                sound = null;
+                hiddenDetail = false;
+                long recalledId = getMessageId(pushMessage);
+                if(recalledId > 0) {
+                    collapseId = recalledId + "";
+                }
+                pushMessage.pushData = null;
+            } else if(pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_DELETED) {
+                pushContent = "消息已被删除";
+                sound = null;
+                hiddenDetail = false;
+                long deletedId = getMessageId(pushMessage);
+                if(deletedId > 0) {
+                    collapseId = deletedId + "";
+                }
+                pushMessage.pushData = null;
+            } else if(pushMessage.pushMessageType != PushMessageType.PUSH_MESSAGE_TYPE_NORMAL) {
+                LOG.error("not support push message type:{}", pushMessage.pushMessageType);
             }
 
-            int badge = pushMessage.getUnReceivedMsg();
+
+        int badge = pushMessage.getUnReceivedMsg();
             if (badge <= 0) {
                 badge = 1;
             }
@@ -187,10 +232,10 @@ public class ApnsServer  {
                 } else {
                     service = developSvc;
                 }
-                if(pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_NORMAL || StringUtils.isEmpty(pushMessage.getVoipDeviceToken())) {
+                if((pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_NORMAL || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_RECALLED || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_DELETED) || StringUtils.isEmpty(pushMessage.getVoipDeviceToken())) {
                     c.add(Calendar.MINUTE, 10); //普通推送
                     String payload = payloadBuilder.buildWithDefaultMaximumLength();
-                    pushNotification = new SimpleApnsPushNotification(pushMessage.deviceToken, pushMessage.packageName, payload, c.getTime(), DeliveryPriority.CONSERVE_POWER, PushType.ALERT);
+                    pushNotification = new SimpleApnsPushNotification(pushMessage.deviceToken, pushMessage.packageName, payload, c.getTime(), DeliveryPriority.CONSERVE_POWER, PushType.ALERT, collapseId);
                 } else {
                     c.add(Calendar.MINUTE, 1); //voip通知，使用普通推送
                     payloadBuilder.setContentAvailable(true);
@@ -198,7 +243,7 @@ public class ApnsServer  {
                     payloadBuilder.addCustomProperty("voip_type", pushMessage.pushMessageType);
                     payloadBuilder.addCustomProperty("voip_data", pushMessage.pushData);
                     String payload = payloadBuilder.buildWithDefaultMaximumLength();
-                    pushNotification = new SimpleApnsPushNotification(pushMessage.deviceToken, pushMessage.packageName, payload, c.getTime(), DeliveryPriority.IMMEDIATE, PushType.BACKGROUND);
+                    pushNotification = new SimpleApnsPushNotification(pushMessage.deviceToken, pushMessage.packageName, payload, c.getTime(), DeliveryPriority.IMMEDIATE, PushType.BACKGROUND, collapseId);
                 }
             } else {
                 if (pushMessage.getPushType() == IOSPushType.IOS_PUSH_TYPE_DISTRIBUTION) {
@@ -208,7 +253,7 @@ public class ApnsServer  {
                 }
                 c.add(Calendar.MINUTE, 1);
                 String payload = payloadBuilder.buildWithDefaultMaximumLength();
-                pushNotification = new SimpleApnsPushNotification(pushMessage.voipDeviceToken, pushMessage.packageName + ".voip", payload, c.getTime(), DeliveryPriority.IMMEDIATE, PushType.VOIP);
+                pushNotification = new SimpleApnsPushNotification(pushMessage.voipDeviceToken, pushMessage.packageName + ".voip", payload, c.getTime(), DeliveryPriority.IMMEDIATE, PushType.VOIP, collapseId);
             }
 
             if (service == null) {

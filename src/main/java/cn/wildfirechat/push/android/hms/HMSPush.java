@@ -2,6 +2,7 @@ package cn.wildfirechat.push.android.hms;
 
 
 import cn.wildfirechat.push.PushMessage;
+import cn.wildfirechat.push.PushMessageType;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.google.gson.Gson;
@@ -46,6 +47,12 @@ public class HMSPush {
 
     //发送Push消息
     public void push(PushMessage pushMessage) {
+        if(pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_RECALLED || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_DELETED) {
+            //Todo not implement
+            //撤回或者删除消息，需要更新远程通知，暂未实现
+            return;
+        }
+
         if (tokenExpiredTime <= System.currentTimeMillis()) {
             try {
                 refreshToken();

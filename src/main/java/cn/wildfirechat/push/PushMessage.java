@@ -24,7 +24,7 @@ public class PushMessage {
     public String voipDeviceToken;
     public boolean isHiddenDetail;
     public String language;
-
+    public long messageId;
 
     public String getSender() {
         return sender;
