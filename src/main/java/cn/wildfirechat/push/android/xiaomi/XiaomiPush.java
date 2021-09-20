@@ -33,7 +33,7 @@ public class XiaomiPush {
         Message message;
         String token = pushMessage.getDeviceToken();
         pushMessage.deviceToken = null;
-        if(pushMessage.pushMessageType != PushMessageType.PUSH_MESSAGE_TYPE_NORMAL && pushMessage.pushMessageType != PushMessageType.PUSH_MESSAGE_TYPE_FRIEND_REQUEST) {
+        if(pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_VOIP_INVITE || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_VOIP_BYE || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_VOIP_ANSWER) {
             //voip
             long timeToLive = 60 * 1000; // 1 min
             message = new Message.Builder()
@@ -47,7 +47,7 @@ public class XiaomiPush {
             //Todo not implement
             //撤回或者删除消息，需要更新远程通知，暂未实现
             return;
-        } else {
+        } else {  //normal or friend
             long timeToLive = 600 * 1000;//10 min
             message = new Message.Builder()
                     .payload(new Gson().toJson(pushMessage))
