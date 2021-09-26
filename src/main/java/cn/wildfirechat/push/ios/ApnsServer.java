@@ -256,6 +256,9 @@ public class ApnsServer  {
                 pushNotification = new SimpleApnsPushNotification(pushMessage.voipDeviceToken, pushMessage.packageName + ".voip", payload, c.getTime(), DeliveryPriority.IMMEDIATE, PushType.VOIP, collapseId);
             }
 
+        SimpleApnsPushNotification simpleApnsPushNotification = (SimpleApnsPushNotification)pushNotification;
+            LOG.info("CollapseId:{}", simpleApnsPushNotification.getCollapseId());
+
             if (service == null) {
                 LOG.error("Service not exist!!!!");
                 return;
@@ -274,6 +277,9 @@ public class ApnsServer  {
                                 sendNotificationFuture.getNow();
                         if(!pushNotificationResponse.isAccepted()) {
                             LOG.error("apns push failure: {}", pushNotificationResponse.getRejectionReason());
+                        } else {
+                            LOG.info("push success: {}", pushNotificationResponse.getApnsId().toString());
+                            LOG.info("token invalidate timestamp: {}", pushNotificationResponse.getTokenInvalidationTimestamp());
                         }
                     } else {
                         // Something went wrong when trying to send the notification to the
