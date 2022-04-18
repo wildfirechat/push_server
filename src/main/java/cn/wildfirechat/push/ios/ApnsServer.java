@@ -149,7 +149,7 @@ public class ApnsServer  {
                 }
                 pushMessage.pushData = null;
             } else if(pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_SECRET_CHAT) {
-                pushMessage.pushContent = "您收到一条密聊消息";
+                pushContent = "您收到一条密聊消息";
             } else if(pushMessage.pushMessageType != PushMessageType.PUSH_MESSAGE_TYPE_NORMAL) {
                 LOG.error("not support push message type:{}", pushMessage.pushMessageType);
             }
@@ -228,13 +228,13 @@ public class ApnsServer  {
             Calendar c = Calendar.getInstance();
             ApnsPushNotification pushNotification;
 
-            if (!mConfig.voipFeature || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_NORMAL || StringUtils.isEmpty(pushMessage.getVoipDeviceToken())) {
+            if (!mConfig.voipFeature || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_NORMAL || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_SECRET_CHAT || StringUtils.isEmpty(pushMessage.getVoipDeviceToken())) {
                 if (pushMessage.getPushType() == IOSPushType.IOS_PUSH_TYPE_DISTRIBUTION) {
                     service = productSvc;
                 } else {
                     service = developSvc;
                 }
-                if((pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_NORMAL || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_RECALLED || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_DELETED) || StringUtils.isEmpty(pushMessage.getVoipDeviceToken())) {
+                if((pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_NORMAL || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_RECALLED || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_DELETED || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_SECRET_CHAT) || StringUtils.isEmpty(pushMessage.getVoipDeviceToken())) {
                     c.add(Calendar.MINUTE, 10); //普通推送
                     String payload = payloadBuilder.buildWithDefaultMaximumLength();
                     pushNotification = new SimpleApnsPushNotification(pushMessage.deviceToken, pushMessage.packageName, payload, c.getTime(), DeliveryPriority.CONSERVE_POWER, PushType.ALERT, collapseId);
