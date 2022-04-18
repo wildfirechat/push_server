@@ -54,6 +54,10 @@ public class MeiZuPush {
             }
         }
 
+        if(pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_SECRET_CHAT) {
+            pushMessage.pushContent = "您收到一条密聊消息";
+        }
+
         VarnishedMessage message = new VarnishedMessage.Builder()
             .appId(mConfig.getAppId())
             .title(title)

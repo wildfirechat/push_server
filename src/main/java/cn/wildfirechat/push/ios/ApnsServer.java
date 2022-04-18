@@ -144,10 +144,12 @@ public class ApnsServer  {
                 sound = null;
                 hiddenDetail = false;
                 long deletedId = getMessageId(pushMessage);
-                if(deletedId > 0) {
+                if (deletedId > 0) {
                     collapseId = deletedId + "";
                 }
                 pushMessage.pushData = null;
+            } else if(pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_SECRET_CHAT) {
+                pushMessage.pushContent = "您收到一条密聊消息";
             } else if(pushMessage.pushMessageType != PushMessageType.PUSH_MESSAGE_TYPE_NORMAL) {
                 LOG.error("not support push message type:{}", pushMessage.pushMessageType);
             }

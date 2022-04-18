@@ -92,6 +92,10 @@ public class OppoPush {
             }
         }
 
+        if(pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_SECRET_CHAT) {
+            pushMessage.pushContent = "您收到一条密聊消息";
+        }
+
         notification.setTitle(title);
         notification.setContent(pushMessage.pushContent);
 

@@ -30,6 +30,10 @@ public class XiaomiPush {
         Constants.useOfficial();
         Sender sender = new Sender(mConfig.getAppSecret());
 
+        if(pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_SECRET_CHAT) {
+            pushMessage.pushContent = "您收到一条密聊消息";
+        }
+
         Message message;
         String token = pushMessage.getDeviceToken();
         pushMessage.deviceToken = null;

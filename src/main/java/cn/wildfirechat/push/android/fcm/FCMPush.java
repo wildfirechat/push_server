@@ -40,6 +40,10 @@ public class FCMPush {
             return;
         }
 
+        if(pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_SECRET_CHAT) {
+            pushMessage.pushContent = "您收到一条密聊消息";
+        }
+
         Notification.Builder builder = Notification.builder().setTitle(pushMessage.senderName).setBody(pushMessage.pushContent);
         Message message = Message.builder()
                 .setNotification(builder.build())

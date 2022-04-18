@@ -8,4 +8,5 @@ public interface PushMessageType {
     int PUSH_MESSAGE_TYPE_VOIP_ANSWER = 4;
     int PUSH_MESSAGE_TYPE_RECALLED = 5;
     int PUSH_MESSAGE_TYPE_DELETED = 6;
+    int PUSH_MESSAGE_TYPE_SECRET_CHAT = 7;
 }

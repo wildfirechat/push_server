@@ -67,6 +67,10 @@ public class VivoPush {
                     title = pushMessage.senderName;
                 }
             }
+            if(pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_SECRET_CHAT) {
+                pushMessage.pushContent = "您收到一条密聊消息";
+            }
+
             Sender senderMessage = new Sender(mConfig.getAppSecret(), authToken);
             Message.Builder builder = new Message.Builder()
                     .regId(pushMessage.getDeviceToken())//该测试手机设备订阅推送后生成的regId 
