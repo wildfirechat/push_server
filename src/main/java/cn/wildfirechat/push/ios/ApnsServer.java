@@ -224,11 +224,19 @@ public class ApnsServer  {
             payloadBuilder.setAlertTitle(title);
             payloadBuilder.setBadgeNumber(badge);
             payloadBuilder.setSound(sound);
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("sender", pushMessage.sender);
+            jsonObject.put("convType", pushMessage.convType);
+            jsonObject.put("convTarget", pushMessage.target);
+            jsonObject.put("convLine", pushMessage.line);
+            jsonObject.put("contType", pushMessage.cntType);
+            jsonObject.put("pushData", pushMessage.pushData);
+            payloadBuilder.addCustomProperty("wfc", jsonObject);
 
             Calendar c = Calendar.getInstance();
             ApnsPushNotification pushNotification;
 
-            if (!mConfig.voipFeature || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_NORMAL || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_SECRET_CHAT || StringUtils.isEmpty(pushMessage.getVoipDeviceToken())) {
+            if (!mConfig.voipFeature || pushMessage.pushMessageType != PushMessageType.PUSH_MESSAGE_TYPE_VOIP_INVITE) {
                 if (pushMessage.getPushType() == IOSPushType.IOS_PUSH_TYPE_DISTRIBUTION) {
                     service = productSvc;
                 } else {
