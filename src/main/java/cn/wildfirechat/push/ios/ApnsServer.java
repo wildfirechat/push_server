@@ -242,7 +242,7 @@ public class ApnsServer  {
                 } else {
                     service = developSvc;
                 }
-                if((pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_NORMAL || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_RECALLED || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_DELETED || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_SECRET_CHAT) || StringUtils.isEmpty(pushMessage.getVoipDeviceToken())) {
+                if(pushMessage.pushMessageType != PushMessageType.PUSH_MESSAGE_TYPE_VOIP_INVITE || StringUtils.isEmpty(pushMessage.getVoipDeviceToken())) {
                     c.add(Calendar.MINUTE, 10); //普通推送
                     String payload = payloadBuilder.buildWithDefaultMaximumLength();
                     pushNotification = new SimpleApnsPushNotification(pushMessage.deviceToken, pushMessage.packageName, payload, c.getTime(), DeliveryPriority.CONSERVE_POWER, PushType.ALERT, collapseId);
