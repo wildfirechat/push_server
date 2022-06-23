@@ -4,6 +4,7 @@ import cn.wildfirechat.push.PushMessage;
 import cn.wildfirechat.push.PushMessageType;
 import cn.wildfirechat.push.Utility;
 import cn.wildfirechat.push.android.fcm.FCMPush;
+import cn.wildfirechat.push.android.getui.GetuiPush;
 import cn.wildfirechat.push.android.hms.HMSPush;
 import cn.wildfirechat.push.android.meizu.MeiZuPush;
 import cn.wildfirechat.push.android.oppo.OppoPush;
@@ -41,14 +42,17 @@ public class AndroidPushServiceImpl implements AndroidPushService {
     @Autowired
     private FCMPush fcmPush;
 
+    @Autowired
+    private GetuiPush getuiPush;
+
     private ExecutorService executorService = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors(), Runtime.getRuntime().availableProcessors() * 100,
-            60L, TimeUnit.SECONDS,
-            new SynchronousQueue<Runnable>());
+        60L, TimeUnit.SECONDS,
+        new SynchronousQueue<Runnable>());
 
     @Override
     public Object push(PushMessage pushMessage) {
         LOG.info("Android push {}", new Gson().toJson(pushMessage));
-        if(Utility.filterPush(pushMessage)) {
+        if (Utility.filterPush(pushMessage)) {
             LOG.info("canceled");
             return "Canceled";
         }
@@ -58,7 +62,7 @@ public class AndroidPushServiceImpl implements AndroidPushService {
         }
 
         final long start = System.currentTimeMillis();
-        executorService.execute(()->{
+        executorService.execute(() -> {
             long now = System.currentTimeMillis();
             if (now - start > 15000) {
                 LOG.error("等待太久，消息抛弃");
@@ -83,6 +87,9 @@ public class AndroidPushServiceImpl implements AndroidPushService {
                     break;
                 case AndroidPushType.ANDROID_PUSH_TYPE_FCM:
                     fcmPush.push(pushMessage);
+                    break;
+                case AndroidPushType.ANDROID_PUSH_TYPE_GETUI:
+                    getuiPush.push(pushMessage);
                     break;
                 default:
                     LOG.info("unknown push type");

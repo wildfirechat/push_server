@@ -91,6 +91,12 @@
             </systemPath>
         </dependency>
 
+        <!-- 个推，后续可能全都通过个推进行处理-->
+        <dependency>
+            <groupId>com.getui.push</groupId>
+            <artifactId>restful-sdk</artifactId>
+            <version>1.0.0.7</version>
+        </dependency>
 
 
 <!--        <dependency>-->
