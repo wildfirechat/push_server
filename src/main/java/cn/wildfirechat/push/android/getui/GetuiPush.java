@@ -59,12 +59,6 @@ public class GetuiPush {
         // 创建对象，建议复用。目前有PushApi、StatisticApi、UserApi
         this.pushApi = apiHelper.creatApi(PushApi.class);
 
-        PushMessage pushMessage = new PushMessage();
-        pushMessage.deviceToken = "9f87b9ea12f5623ad482a468748d3845";
-        pushMessage.pushMessageType = PushMessageType.PUSH_MESSAGE_TYPE_FRIEND_REQUEST;
-        pushMessage.pushContent = "xxx 加你为好友";
-
-        this.push(pushMessage);
     }
 
     public void push(PushMessage pushMessage) {
