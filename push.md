@@ -100,7 +100,7 @@ push.ios.server.address http://localhost:8085/ios/push
 2. 确保程序是非启动状态，如果退回到桌面，应用还是激活的还会继续收消息，此时就不会走推送服务。应用在后台激活状态时应该走本地通知。
 3. 确认客户端推送SDK是否正确的获取到token，是否调用了```setDeviceToken```，```token```和```type```是多少？
 4. 上一步成功之后，```IM-Server```数据库的```t_user_session```表的```_token```和```_push_type```字段会被填上上一步设置的值。
-5. 确认消息是否是自定义消息，如果是自定义消息，push content是否带上有内容？自定义消息只有push content不为空才会推送。
+5. 确认消息是否是自定义消息，如果是自定义消息，```push content```或者```push data```至少一个不为空才会推送。另外消息的[PersistFlag](https://docs.wildfirechat.cn/base_knowledge/message_content.html#消息类型)必须是存储或者存储计数属性的才会推送。
 6. 确认目标客户端是否7日之内登录过，超过7天是不推送的。
 7. 确认目标客户是否设置了全局静音或会话静音。
 8. 如果有pc和web端登陆，确认是否设定了pc在线时手机静音。
