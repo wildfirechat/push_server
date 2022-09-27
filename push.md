@@ -130,3 +130,28 @@ push.ios.server.address http://localhost:8085/ios/push
 4. 上面问题排查中每一步的结果。
 
 **只有了解推送的流程和每个环节的功能才能高效地沟通，所以只有写清楚上面四条信息我们才能够提供技术支持。**
+
+### 附录
+#### IM-Server 调用推送服务 HTTP 请求说明
+使用POST方式，内容为JSON格式，参数如下
+
+| 参数 | 类型 | 必需 | 描述 |
+| ------ | ------ | --- | ------ |
+| sender | string | 是 | 发送者ID |
+| senderName | string | 是 | 发送者姓名 |
+| convType | int | 是 | 会话类型 |
+| target | string | 是 | 接收用户ID |
+| targetName | string | 是 | 接收用户名称 |
+| line | int | 否 | 会话线路，缺省为0 |
+| serverTime | long | 是 | 消息时间 |
+| pushMessageType | int | 是 | 0 普通消息；1 voip消息。在支持透传的系统上，voip消息用透传 |
+| pushType | int | 是 | 推送类型，android推送分为小米/华为/魅族等。ios分别为开发和发布。 |
+| pushContent | string | 是 | 消息推送内容 |
+| pushData | string | 否 | 消息推送数据 |
+| unReceivedMsg | int | 是 | 服务器端没有接收下来的消息数（只计算计数消息） |
+| mentionedType | int | 否 | 消息提醒类型，0，没提醒；1，提醒了当前用户；2，提醒了所有人 |
+| packageName | string | 否 | 应用包名 |
+| deviceToken | int | 否 | 设备token |
+| isHiddenDetail | bool | 否 | 是否要隐藏推送详情 |
+| language | string | 否 | 接收者的手机语言 |
+
