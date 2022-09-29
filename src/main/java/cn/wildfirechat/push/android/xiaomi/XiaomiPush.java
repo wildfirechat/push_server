@@ -3,6 +3,7 @@ package cn.wildfirechat.push.android.xiaomi;
 
 import cn.wildfirechat.push.PushMessage;
 import cn.wildfirechat.push.PushMessageType;
+import cn.wildfirechat.push.Utility;
 import com.google.gson.Gson;
 import com.xiaomi.xmpush.server.Constants;
 import com.xiaomi.xmpush.server.Message;
@@ -52,11 +53,15 @@ public class XiaomiPush {
             //撤回或者删除消息，需要更新远程通知，暂未实现
             return;
         } else {  //normal or friend
+            String[] arr = Utility.getPushTitleAndContent(pushMessage);
+            String title = arr[0];
+            String body = arr[1];
+
             long timeToLive = 600 * 1000;//10 min
             message = new Message.Builder()
                     .payload(new Gson().toJson(pushMessage))
-                    .title("新消息提醒")
-                    .description(pushMessage.pushContent)
+                    .title(title)
+                    .description(body)
                     .notifyType(NOTIFY_TYPE_ALL)
                     .restrictedPackageName(pushMessage.getPackageName())
                     .passThrough(0)

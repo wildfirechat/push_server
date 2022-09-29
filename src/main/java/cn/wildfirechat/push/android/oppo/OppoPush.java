@@ -2,6 +2,7 @@ package cn.wildfirechat.push.android.oppo;
 
 import cn.wildfirechat.push.PushMessage;
 import cn.wildfirechat.push.PushMessageType;
+import cn.wildfirechat.push.Utility;
 import com.oppo.push.server.Notification;
 import com.oppo.push.server.Result;
 import com.oppo.push.server.Sender;
@@ -77,27 +78,12 @@ public class OppoPush {
         /**
          * 以下参数必填项
         */
-        String title;
-        if (pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_FRIEND_REQUEST) {
-            if (StringUtils.isEmpty(pushMessage.senderName)) {
-                title = "好友请求";
-            } else {
-                title = pushMessage.senderName + " 请求加您为好友";
-            }
-        } else {
-            if (StringUtils.isEmpty(pushMessage.senderName)) {
-                title = "消息";
-            } else {
-                title = pushMessage.senderName;
-            }
-        }
-
-        if(pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_SECRET_CHAT) {
-            pushMessage.pushContent = "您收到一条密聊消息";
-        }
+        String[] arr = Utility.getPushTitleAndContent(pushMessage);
+        String title = arr[0];
+        String body = arr[1];
 
         notification.setTitle(title);
-        notification.setContent(pushMessage.pushContent);
+        notification.setContent(body);
 
         /**
          * 以下参数非必填项， 如果需要使用可以参考OPPO push服务端api文档进行设置

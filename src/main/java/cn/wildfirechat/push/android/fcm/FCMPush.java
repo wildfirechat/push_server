@@ -2,6 +2,7 @@ package cn.wildfirechat.push.android.fcm;
 
 import cn.wildfirechat.push.PushMessage;
 import cn.wildfirechat.push.PushMessageType;
+import cn.wildfirechat.push.Utility;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
@@ -44,7 +45,11 @@ public class FCMPush {
             pushMessage.pushContent = "您收到一条密聊消息";
         }
 
-        Notification.Builder builder = Notification.builder().setTitle(pushMessage.senderName).setBody(pushMessage.pushContent);
+        String[] arr = Utility.getPushTitleAndContent(pushMessage);
+        String title = arr[0];
+        String body = arr[1];
+
+        Notification.Builder builder = Notification.builder().setTitle(title).setBody(body);
         Message message = Message.builder()
                 .setNotification(builder.build())
                 .setToken(pushMessage.deviceToken)

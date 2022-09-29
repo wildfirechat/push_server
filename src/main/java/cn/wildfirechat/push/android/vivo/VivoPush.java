@@ -2,6 +2,7 @@ package cn.wildfirechat.push.android.vivo;
 
 import cn.wildfirechat.push.PushMessage;
 import cn.wildfirechat.push.PushMessageType;
+import cn.wildfirechat.push.Utility;
 import com.vivo.push.sdk.notofication.Message;
 import com.vivo.push.sdk.notofication.Result;
 import com.vivo.push.sdk.server.Sender;
@@ -50,33 +51,16 @@ public class VivoPush {
 
         Result resultMessage = null;
         try {
-            if (pushMessage.isHiddenDetail) {
-                pushMessage.pushContent = "您收到一条新消息";
-            }
-            String title;
-            if (pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_FRIEND_REQUEST) {
-                if (StringUtils.isEmpty(pushMessage.senderName)) {
-                    title = "好友请求";
-                } else {
-                    title = pushMessage.senderName + " 请求加您为好友";
-                }
-            } else {
-                if (StringUtils.isEmpty(pushMessage.senderName)) {
-                    title = "消息";
-                } else {
-                    title = pushMessage.senderName;
-                }
-            }
-            if(pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_SECRET_CHAT) {
-                pushMessage.pushContent = "您收到一条密聊消息";
-            }
+            String[] arr = Utility.getPushTitleAndContent(pushMessage);
+            String title = arr[0];
+            String body = arr[1];
 
             Sender senderMessage = new Sender(mConfig.getAppSecret(), authToken);
             Message.Builder builder = new Message.Builder()
                     .regId(pushMessage.getDeviceToken())//该测试手机设备订阅推送后生成的regId 
                     .notifyType(3)
                     .title(title)
-                    .content(pushMessage.pushContent)
+                    .content(body)
                     .timeToLive(1000)
                     .skipType(1)
                     .networkType(-1)
