@@ -52,6 +52,11 @@ public class AndroidPushServiceImpl implements AndroidPushService {
             LOG.info("canceled");
             return "Canceled";
         }
+        if(pushMessage.line == 2) {
+            LOG.info("ignore moments messages");
+            return "Canceled";
+        }
+
         final long start = System.currentTimeMillis();
         executorService.execute(()->{
             long now = System.currentTimeMillis();
