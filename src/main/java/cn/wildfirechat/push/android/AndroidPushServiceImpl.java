@@ -52,7 +52,7 @@ public class AndroidPushServiceImpl implements AndroidPushService {
             LOG.info("canceled");
             return "Canceled";
         }
-        if(pushMessage.line == 2) {
+        if(pushMessage.line == 1) {
             LOG.info("ignore moments messages");
             return "Canceled";
         }
