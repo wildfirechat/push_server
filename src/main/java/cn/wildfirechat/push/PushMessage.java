@@ -4,9 +4,11 @@ package cn.wildfirechat.push;
 public class PushMessage {
     public String sender;
     public String senderName;
+    public String senderPortrait;
     public int convType;
     public String target;
     public String targetName;
+    public String targetPortrait;
     public String userId;
     public int line;
     public int cntType;
