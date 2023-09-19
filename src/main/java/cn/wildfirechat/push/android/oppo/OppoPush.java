@@ -18,6 +18,7 @@ import javax.annotation.PostConstruct;
 @Component
 public class OppoPush {
     private static final Logger LOG = LoggerFactory.getLogger(OppoPush.class);
+    private static final int OPPO_PUSH_MAX_CONTENT = 200;
 
     @Autowired
     OppoConfig mConfig;
@@ -81,6 +82,10 @@ public class OppoPush {
         String[] arr = Utility.getPushTitleAndContent(pushMessage);
         String title = arr[0];
         String body = arr[1];
+        if(body != null && body.length() > OPPO_PUSH_MAX_CONTENT) {
+            body = body.substring(0, OPPO_PUSH_MAX_CONTENT-3);
+            body += "...";
+        }
 
         notification.setTitle(title);
         notification.setContent(body);
