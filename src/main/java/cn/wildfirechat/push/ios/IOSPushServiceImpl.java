@@ -3,6 +3,8 @@ package cn.wildfirechat.push.ios;
 import cn.wildfirechat.push.PushMessage;
 import cn.wildfirechat.push.PushMessageType;
 import cn.wildfirechat.push.Utility;
+import cn.wildfirechat.push.android.AndroidPushType;
+import cn.wildfirechat.push.android.getui.GetuiPush;
 import com.google.gson.Gson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +21,9 @@ public class IOSPushServiceImpl implements IOSPushService {
     private static final Logger LOG = LoggerFactory.getLogger(IOSPushServiceImpl.class);
     @Autowired
     public ApnsServer apnsServer;
+
+    @Autowired
+    private GetuiPush getuiPush;
 
     private ExecutorService executorService = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors(), Runtime.getRuntime().availableProcessors() * 100,
             60L, TimeUnit.SECONDS,
@@ -38,7 +43,14 @@ public class IOSPushServiceImpl implements IOSPushService {
                 LOG.error("等待太久，消息抛弃");
                 return;
             }
-            apnsServer.pushMessage(pushMessage);
+            if(pushMessage.pushType < 3) {
+                apnsServer.pushMessage(pushMessage);
+            } else if(pushMessage.pushType == AndroidPushType.ANDROID_PUSH_TYPE_GETUI) {
+                getuiPush.push(pushMessage, false);
+            } else {
+                LOG.error("Unknown ios push type: {}", pushMessage.pushType);
+            }
+
         });
         return "OK";
     }

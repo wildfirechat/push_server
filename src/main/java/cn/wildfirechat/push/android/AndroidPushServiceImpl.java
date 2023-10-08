@@ -89,7 +89,7 @@ public class AndroidPushServiceImpl implements AndroidPushService {
                     fcmPush.push(pushMessage);
                     break;
                 case AndroidPushType.ANDROID_PUSH_TYPE_GETUI:
-                    getuiPush.push(pushMessage);
+                    getuiPush.push(pushMessage, true);
                     break;
                 default:
                     LOG.info("unknown push type");
