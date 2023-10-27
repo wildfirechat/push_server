@@ -15,7 +15,11 @@ public class PushMessage {
     public long serverTime;
     //消息的类型，普通消息通知栏；voip要透传。
     public int pushMessageType;
-    //推送类型，android推送分为小米/华为/魅族等。ios分别为开发和发布。
+    /**
+     * 推送类型
+     * Android 推送分为小米/华为/魅族等，参考{@link cn.wildfirechat.push.android.AndroidPushType}
+     * iOS 分别为开发和发布，参考{@link cn.wildfirechat.push.ios.IOSPushType}
+     */
     public int pushType;
     public String pushContent;
     public String pushData;
