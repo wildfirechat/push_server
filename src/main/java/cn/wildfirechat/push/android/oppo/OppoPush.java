@@ -40,11 +40,7 @@ public class OppoPush {
         if (mSender == null) {
             LOG.error("Oppo push message can't sent, because not initial correctly");
         }
-        if(pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_RECALLED || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_DELETED) {
-            //Todo not implement
-            //撤回或者删除消息，需要更新远程通知，暂未实现
-            return;
-        }
+
         Result result = null;
         try {
             Notification notification = getNotification(pushMessage); //创建通知栏消息体

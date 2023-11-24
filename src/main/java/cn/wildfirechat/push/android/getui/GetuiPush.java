@@ -3,6 +3,7 @@ package cn.wildfirechat.push.android.getui;
 
 import cn.wildfirechat.push.PushMessage;
 import cn.wildfirechat.push.PushMessageType;
+import cn.wildfirechat.push.Utility;
 import cn.wildfirechat.push.android.xiaomi.XiaomiConfig;
 import com.getui.push.v2.sdk.ApiHelper;
 import com.getui.push.v2.sdk.GtApiConfiguration;
@@ -15,6 +16,9 @@ import com.getui.push.v2.sdk.dto.req.message.android.AndroidDTO;
 import com.getui.push.v2.sdk.dto.req.message.android.GTNotification;
 import com.getui.push.v2.sdk.dto.req.message.android.ThirdNotification;
 import com.getui.push.v2.sdk.dto.req.message.android.Ups;
+import com.getui.push.v2.sdk.dto.req.message.ios.Alert;
+import com.getui.push.v2.sdk.dto.req.message.ios.Aps;
+import com.getui.push.v2.sdk.dto.req.message.ios.IosDTO;
 import com.google.gson.Gson;
 import com.meizu.push.sdk.server.IFlymePush;
 import com.xiaomi.xmpush.server.Constants;
@@ -63,33 +67,9 @@ public class GetuiPush {
     }
 
     public void push(PushMessage pushMessage, boolean isAndroid) {
-        if (pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_RECALLED || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_DELETED) {
-            //Todo not implement
-            //撤回或者删除消息，需要更新远程通知，暂未实现
-            return;
-        }
-
-        if (pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_SECRET_CHAT) {
-            pushMessage.pushContent = "您收到一条密聊消息";
-        }
-
-        if (pushMessage.isHiddenDetail) {
-            pushMessage.pushContent = "您收到一条新消息";
-        }
-        String title;
-        if (pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_FRIEND_REQUEST) {
-            if (StringUtils.isEmpty(pushMessage.senderName)) {
-                title = "好友请求";
-            } else {
-                title = pushMessage.senderName + " 请求加您为好友";
-            }
-        } else {
-            if (StringUtils.isEmpty(pushMessage.senderName)) {
-                title = "新消息";
-            } else {
-                title = pushMessage.senderName;
-            }
-        }
+        String[] arr = Utility.getPushTitleAndContent(pushMessage);
+        String title = arr[0];
+        String body = arr[1];
 
         //根据cid进行单推
         PushDTO<Audience> pushDTO = new PushDTO<Audience>();
@@ -101,7 +81,7 @@ public class GetuiPush {
         GTNotification notification = new GTNotification();
         pm.setNotification(notification);
         notification.setTitle(title);
-        notification.setBody(pushMessage.pushContent);
+        notification.setBody(body);
         notification.setClickType("startapp");
 //        notification.setUrl("https://www.getui.com");
         /**** 设置个推通道参数，更多参数请查看文档或对象源码 *****/
@@ -117,7 +97,7 @@ public class GetuiPush {
         ThirdNotification thirdNotification = new ThirdNotification();
         ups.setNotification(thirdNotification);
         thirdNotification.setTitle(title);
-        thirdNotification.setBody(pushMessage.pushContent);
+        thirdNotification.setBody(body);
         thirdNotification.setClickType("startapp");
 //        thirdNotification.setUrl("https://www.getui.com");
         // 两条消息的notify_id相同，新的消息会覆盖老的消息，取值范围：0-2147483647
@@ -125,16 +105,16 @@ public class GetuiPush {
         /*配置安卓厂商参数结束，更多参数请查看文档或对象源码*/
 
         /*设置ios厂商参数*/
-//        IosDTO iosDTO = new IosDTO();
-//        pushChannel.setIos(iosDTO);
-//        // 相同的collapseId会覆盖之前的消息
-//        iosDTO.setApnsCollapseId("xxx");
-//        Aps aps = new Aps();
-//        iosDTO.setAps(aps);
-//        Alert alert = new Alert();
-//        aps.setAlert(alert);
-//        alert.setTitle("ios title");
-//        alert.setBody("ios body");
+        IosDTO iosDTO = new IosDTO();
+        pushChannel.setIos(iosDTO);
+        // 相同的collapseId会覆盖之前的消息
+        iosDTO.setApnsCollapseId("" + pushMessage.messageId);
+        Aps aps = new Aps();
+        iosDTO.setAps(aps);
+        Alert alert = new Alert();
+        aps.setAlert(alert);
+        alert.setTitle(title);
+        alert.setBody(body);
         /*设置ios厂商参数结束，更多参数请查看文档或对象源码*/
 
         /*设置接收人信息*/

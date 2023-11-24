@@ -35,16 +35,6 @@ public class FCMPush {
 
 
     public void push(PushMessage pushMessage) {
-        if(pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_RECALLED || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_DELETED) {
-            //Todo not implement
-            //撤回或者删除消息，需要更新远程通知，暂未实现
-            return;
-        }
-
-        if(pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_SECRET_CHAT) {
-            pushMessage.pushContent = "您收到一条密聊消息";
-        }
-
         String[] arr = Utility.getPushTitleAndContent(pushMessage);
         String title = arr[0];
         String body = arr[1];

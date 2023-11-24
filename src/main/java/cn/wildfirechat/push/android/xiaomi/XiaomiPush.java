@@ -48,10 +48,6 @@ public class XiaomiPush {
                     .timeToLive(timeToLive)
                     .enableFlowControl(false)
                     .build();
-        } else if(pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_RECALLED || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_DELETED) {
-            //Todo not implement
-            //撤回或者删除消息，需要更新远程通知，暂未实现
-            return;
         } else {  //normal or friend
             String[] arr = Utility.getPushTitleAndContent(pushMessage);
             String title = arr[0];

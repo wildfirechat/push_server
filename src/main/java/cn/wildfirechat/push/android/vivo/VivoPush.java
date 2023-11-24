@@ -43,12 +43,6 @@ public class VivoPush {
             refreshToken();
         }
 
-        if(pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_RECALLED || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_DELETED) {
-            //Todo not implement
-            //撤回或者删除消息，需要更新远程通知，暂未实现
-            return;
-        }
-
         Result resultMessage = null;
         try {
             String[] arr = Utility.getPushTitleAndContent(pushMessage);
