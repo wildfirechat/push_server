@@ -1,10 +1,9 @@
 package cn.wildfirechat.push.android;
 
 import cn.wildfirechat.push.PushMessage;
-import cn.wildfirechat.push.PushMessageType;
 import cn.wildfirechat.push.Utility;
 import cn.wildfirechat.push.android.fcm.FCMPush;
-import cn.wildfirechat.push.android.getui.GetuiPush;
+import cn.wildfirechat.push.getui.GetuiPush;
 import cn.wildfirechat.push.android.hms.HMSPush;
 import cn.wildfirechat.push.android.meizu.MeiZuPush;
 import cn.wildfirechat.push.android.oppo.OppoPush;
@@ -84,7 +83,7 @@ public class AndroidPushServiceImpl implements AndroidPushService {
                     fcmPush.push(pushMessage);
                     break;
                 case AndroidPushType.ANDROID_PUSH_TYPE_GETUI:
-                    getuiPush.push(pushMessage);
+                    getuiPush.push(pushMessage, true);
                     break;
                 default:
                     LOG.info("unknown push type");

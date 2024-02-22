@@ -1,4 +1,4 @@
-package cn.wildfirechat.push.android.getui;
+package cn.wildfirechat.push.getui;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
