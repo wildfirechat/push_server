@@ -1,7 +1,6 @@
 package cn.wildfirechat.push.hm.payload;
 
-import cn.wildfirechat.push.hm.payload.internal.ClickAction;
-import cn.wildfirechat.push.hm.payload.internal.Notification;
+import cn.wildfirechat.push.PushMessage;
 import cn.wildfirechat.push.hm.payload.internal.Payload;
 import cn.wildfirechat.push.hm.payload.internal.Target;
 import com.google.gson.Gson;
@@ -18,14 +17,14 @@ public class VoipPayload {
         return new Gson().toJson(this);
     }
 
-    public static VoipPayload buildAlertPayload(String token, String extraData) {
+    public static VoipPayload buildAlertPayload(PushMessage pushMessage) {
         Target target = new Target();
         target.token = new ArrayList<>();
-        target.token.add(token);
+        target.token.add(pushMessage.deviceToken);
 
         VoipPayload voipPayload = new VoipPayload();
         voipPayload.payload = new Payload();
-        voipPayload.payload.extraData = extraData;
+        voipPayload.payload.extraData = "TODO";
         voipPayload.target = target;
 
         return voipPayload;

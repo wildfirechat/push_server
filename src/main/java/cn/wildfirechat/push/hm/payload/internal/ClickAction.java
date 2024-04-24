@@ -1,5 +1,7 @@
 package cn.wildfirechat.push.hm.payload.internal;
 
+import org.json.simple.JSONObject;
+
 public class ClickAction {
     /**
      * 0：打开应用首页
@@ -10,5 +12,5 @@ public class ClickAction {
 
     public String action;
     public String uri;
-    public String data;
+    public JSONObject data;
 }

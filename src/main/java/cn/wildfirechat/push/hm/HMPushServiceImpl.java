@@ -88,13 +88,10 @@ public class HMPushServiceImpl implements HMPushService {
             }
 
             if (pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_VOIP_INVITE || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_VOIP_INVITE) {
-                // TODO
-                String data = "TODO";
-                VoipPayload voipPayload = VoipPayload.buildAlertPayload(pushMessage.getDeviceToken(), data);
+                VoipPayload voipPayload = VoipPayload.buildAlertPayload(pushMessage);
                 httpPost(this.pushUrl, jwt, 10, voipPayload.toString(), 10000, 10000);
             } else {
-                String[] titleAndContent = Utility.getPushTitleAndContent(pushMessage);
-                AlertPayload alertPayload = AlertPayload.buildAlertPayload(pushMessage.getDeviceToken(), titleAndContent[0], titleAndContent[1]);
+                AlertPayload alertPayload = AlertPayload.buildAlertPayload(pushMessage);
                 String response = httpPost(this.pushUrl, jwt, 0, alertPayload.toString(), 10000, 10000);
                 LOG.info("Push to {} response {}", pushMessage.getDeviceToken(), response);
             }
