@@ -30,7 +30,7 @@ public class PushController {
         return mIOSPushService.push(pushMessage);
     }
 
-    @PostMapping(value = "/hm/push", produces = "application/json;charset=UTF-8")
+    @PostMapping(value = "/harmony/push", produces = "application/json;charset=UTF-8")
     public Object hmPush(@RequestBody PushMessage pushMessage) {
         return hmPushService.push(pushMessage);
     }
