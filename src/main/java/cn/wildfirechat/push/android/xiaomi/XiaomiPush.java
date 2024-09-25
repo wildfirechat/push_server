@@ -47,6 +47,7 @@ public class XiaomiPush {
                     .passThrough(1)  //透传
                     .timeToLive(timeToLive)
                     .enableFlowControl(false)
+                    .extra("channel_id", mConfig.getChannelId())
                     .build();
         } else {  //normal or friend
             String[] arr = Utility.getPushTitleAndContent(pushMessage);
@@ -63,6 +64,7 @@ public class XiaomiPush {
                     .passThrough(0)
                     .timeToLive(timeToLive)
                     .enableFlowControl(true)
+                    .extra("channel_id", mConfig.getChannelId())
                     .build();
         }
 
