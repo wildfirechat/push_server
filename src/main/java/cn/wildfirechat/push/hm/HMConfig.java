@@ -12,6 +12,7 @@ public class HMConfig {
     private String iss;
     private String kid;
     private String projectId;
+    private boolean supportVoipPush = false;
 
     public String getPrivateKey() {
         return privateKey;
@@ -43,5 +44,13 @@ public class HMConfig {
 
     public void setProjectId(String projectId) {
         this.projectId = projectId;
+    }
+
+    public boolean isSupportVoipPush() {
+        return supportVoipPush;
+    }
+
+    public void setSupportVoipPush(boolean supportVoipPush) {
+        this.supportVoipPush = supportVoipPush;
     }
 }
