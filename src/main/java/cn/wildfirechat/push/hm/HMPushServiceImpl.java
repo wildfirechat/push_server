@@ -87,14 +87,14 @@ public class HMPushServiceImpl implements HMPushService {
                 return null;
             }
 
-            if (pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_VOIP_INVITE || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_VOIP_INVITE) {
+            if (pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_VOIP_INVITE || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_VOIP_BYE) {
                 VoipPayload voipPayload = VoipPayload.buildAlertPayload(pushMessage);
                 String response = httpPost(this.pushUrl, jwt, 10, voipPayload.toString(), 10000, 10000);
-                LOG.info("Voip Push to {} response {}", pushMessage.getDeviceToken(), response);
+                LOG.info("Push voip message to {} response {}", pushMessage.getDeviceToken(), response);
             } else {
                 AlertPayload alertPayload = AlertPayload.buildAlertPayload(pushMessage);
                 String response = httpPost(this.pushUrl, jwt, 0, alertPayload.toString(), 10000, 10000);
-                LOG.info("Push to {} response {}", pushMessage.getDeviceToken(), response);
+                LOG.info("Push alert message to {} response {}", pushMessage.getDeviceToken(), response);
             }
 
         } catch (NoSuchAlgorithmException | InvalidKeySpecException | IOException e) {
