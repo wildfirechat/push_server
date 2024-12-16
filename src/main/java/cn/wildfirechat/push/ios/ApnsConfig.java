@@ -11,6 +11,10 @@ public class ApnsConfig {
     String cerPath;
     String cerPwd;
 
+    String authKeyPath;
+    String keyId;
+    String teamId;
+
     String voipCerPath;
     String voipCerPwd;
 
@@ -73,5 +77,29 @@ public class ApnsConfig {
 
     public void setVoipFeature(boolean voipFeature) {
         this.voipFeature = voipFeature;
+    }
+
+    public String getAuthKeyPath() {
+        return authKeyPath;
+    }
+
+    public void setAuthKeyPath(String authKeyPath) {
+        this.authKeyPath = authKeyPath;
+    }
+
+    public String getKeyId() {
+        return keyId;
+    }
+
+    public void setKeyId(String keyId) {
+        this.keyId = keyId;
+    }
+
+    public String getTeamId() {
+        return teamId;
+    }
+
+    public void setTeamId(String teamId) {
+        this.teamId = teamId;
     }
 }

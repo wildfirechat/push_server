@@ -4,6 +4,7 @@ import cn.wildfirechat.push.PushMessage;
 import cn.wildfirechat.push.PushMessageType;
 import cn.wildfirechat.push.Utility;
 import com.turo.pushy.apns.*;
+import com.turo.pushy.apns.auth.ApnsSigningKey;
 import com.turo.pushy.apns.metrics.micrometer.MicrometerApnsClientMetricsListener;
 import com.turo.pushy.apns.util.ApnsPayloadBuilder;
 import com.turo.pushy.apns.util.SimpleApnsPushNotification;
@@ -21,6 +22,8 @@ import org.springframework.util.StringUtils;
 import javax.annotation.PostConstruct;
 import java.io.File;
 import java.io.IOException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Calendar;
 
 import static java.lang.System.exit;
@@ -56,34 +59,64 @@ public class ApnsServer  {
         }
 
         try {
-            productSvc = new ApnsClientBuilder()
-                    .setApnsServer(ApnsClientBuilder.PRODUCTION_APNS_HOST)
-                    .setClientCredentials(new File(mConfig.cerPath), mConfig.cerPwd)
-                    .setMetricsListener(productMetricsListener)
-                    .build();
-
-            developSvc = new ApnsClientBuilder()
-                    .setApnsServer(ApnsClientBuilder.DEVELOPMENT_APNS_HOST)
-                    .setClientCredentials(new File(mConfig.cerPath), mConfig.cerPwd)
-                    .setMetricsListener(developMetricsListener)
-                    .build();
-
-            if (mConfig.voipFeature) {
-                productVoipSvc = new ApnsClientBuilder()
+            if (!StringUtils.isEmpty(mConfig.authKeyPath) && !StringUtils.isEmpty(mConfig.keyId) && !StringUtils.isEmpty(mConfig.teamId)) {
+                productSvc = new ApnsClientBuilder()
                         .setApnsServer(ApnsClientBuilder.PRODUCTION_APNS_HOST)
-                        .setClientCredentials(new File(mConfig.voipCerPath), mConfig.voipCerPwd)
+                        .setSigningKey(ApnsSigningKey.loadFromPkcs8File(new File(mConfig.authKeyPath), mConfig.teamId, mConfig.keyId))
                         .setMetricsListener(productMetricsListener)
                         .build();
-                developVoipSvc = new ApnsClientBuilder()
+
+                developSvc = new ApnsClientBuilder()
                         .setApnsServer(ApnsClientBuilder.DEVELOPMENT_APNS_HOST)
-                        .setClientCredentials(new File(mConfig.voipCerPath), mConfig.voipCerPwd)
+                        .setSigningKey(ApnsSigningKey.loadFromPkcs8File(new File(mConfig.authKeyPath), mConfig.teamId, mConfig.keyId))
                         .setMetricsListener(developMetricsListener)
                         .build();
-            }
 
+                if (mConfig.voipFeature) {
+                    productVoipSvc = new ApnsClientBuilder()
+                            .setApnsServer(ApnsClientBuilder.PRODUCTION_APNS_HOST)
+                            .setSigningKey(ApnsSigningKey.loadFromPkcs8File(new File(mConfig.authKeyPath), mConfig.teamId, mConfig.keyId))
+                            .setMetricsListener(productMetricsListener)
+                            .build();
+                    developVoipSvc = new ApnsClientBuilder()
+                            .setApnsServer(ApnsClientBuilder.DEVELOPMENT_APNS_HOST)
+                            .setSigningKey(ApnsSigningKey.loadFromPkcs8File(new File(mConfig.authKeyPath), mConfig.teamId, mConfig.keyId))
+                            .setMetricsListener(developMetricsListener)
+                            .build();
+                }
+            } else {
+                productSvc = new ApnsClientBuilder()
+                        .setApnsServer(ApnsClientBuilder.PRODUCTION_APNS_HOST)
+                        .setClientCredentials(new File(mConfig.cerPath), mConfig.cerPwd)
+                        .setMetricsListener(productMetricsListener)
+                        .build();
+
+                developSvc = new ApnsClientBuilder()
+                        .setApnsServer(ApnsClientBuilder.DEVELOPMENT_APNS_HOST)
+                        .setClientCredentials(new File(mConfig.cerPath), mConfig.cerPwd)
+                        .setMetricsListener(developMetricsListener)
+                        .build();
+
+                if (mConfig.voipFeature) {
+                    productVoipSvc = new ApnsClientBuilder()
+                            .setApnsServer(ApnsClientBuilder.PRODUCTION_APNS_HOST)
+                            .setClientCredentials(new File(mConfig.voipCerPath), mConfig.voipCerPwd)
+                            .setMetricsListener(productMetricsListener)
+                            .build();
+                    developVoipSvc = new ApnsClientBuilder()
+                            .setApnsServer(ApnsClientBuilder.DEVELOPMENT_APNS_HOST)
+                            .setClientCredentials(new File(mConfig.voipCerPath), mConfig.voipCerPwd)
+                            .setMetricsListener(developMetricsListener)
+                            .build();
+                }
+            }
         } catch (IOException e) {
             e.printStackTrace();
             exit(-1);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        } catch (InvalidKeyException e) {
+            throw new RuntimeException(e);
         }
     }
 
