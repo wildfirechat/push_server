@@ -30,6 +30,7 @@ public class OppoPush {
         try {
             mSender = new Sender(mConfig.getAppKey(), mConfig.getAppSecret());
         } catch (Exception e) {
+            LOG.error("OppoPush init failed");
             e.printStackTrace();
         }
     }

@@ -48,21 +48,26 @@ public class GetuiPush {
 
     @PostConstruct
     public void init() {
-        // 设置httpClient最大连接数，当并发较大时建议调大此参数。或者启动参数加上 -Dhttp.maxConnections=200
-        System.setProperty("http.maxConnections", "200");
-        GtApiConfiguration apiConfiguration = new GtApiConfiguration();
-        //填写应用配置
-        if(!StringUtils.isEmpty(mConfig.getAppId())) {
-            apiConfiguration.setAppId(mConfig.getAppId());
-            apiConfiguration.setAppKey(mConfig.getAppKey());
-            apiConfiguration.setMasterSecret(mConfig.getMasterSecret());
-            // 接口调用前缀，请查看文档: 接口调用规范 -> 接口前缀, 可不填写appId
-            apiConfiguration.setDomain("https://restapi.getui.com/v2/");
-//        apiConfiguration.setDomain(mConfig.getDomain());
-            // 实例化ApiHelper对象，用于创建接口对象
-            ApiHelper apiHelper = ApiHelper.build(apiConfiguration);
-            // 创建对象，建议复用。目前有PushApi、StatisticApi、UserApi
-            this.pushApi = apiHelper.creatApi(PushApi.class);
+        try{
+            // 设置httpClient最大连接数，当并发较大时建议调大此参数。或者启动参数加上 -Dhttp.maxConnections=200
+            System.setProperty("http.maxConnections", "200");
+            GtApiConfiguration apiConfiguration = new GtApiConfiguration();
+            //填写应用配置
+            if(!StringUtils.isEmpty(mConfig.getAppId())) {
+                apiConfiguration.setAppId(mConfig.getAppId());
+                apiConfiguration.setAppKey(mConfig.getAppKey());
+                apiConfiguration.setMasterSecret(mConfig.getMasterSecret());
+                // 接口调用前缀，请查看文档: 接口调用规范 -> 接口前缀, 可不填写appId
+                apiConfiguration.setDomain("https://restapi.getui.com/v2/");
+    //        apiConfiguration.setDomain(mConfig.getDomain());
+                // 实例化ApiHelper对象，用于创建接口对象
+                ApiHelper apiHelper = ApiHelper.build(apiConfiguration);
+                // 创建对象，建议复用。目前有PushApi、StatisticApi、UserApi
+                this.pushApi = apiHelper.creatApi(PushApi.class);
+            }
+        } catch (Exception e) {
+            LOG.error("GetuiPush init failed");
+            e.printStackTrace();
         }
     }
 

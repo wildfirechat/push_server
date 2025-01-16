@@ -25,12 +25,18 @@ public class FCMPush {
 
     @PostConstruct
     private void init() throws Exception {
+        try {
+
         FileInputStream refreshToken = new FileInputStream(mConfig.getCredentialsPath());
         FirebaseOptions options = FirebaseOptions.builder()
                 .setCredentials(GoogleCredentials.fromStream(refreshToken))
                 .setDatabaseUrl("https://<DATABASE_NAME>.firebaseio.com/")
                 .build();
         FirebaseApp.initializeApp(options);
+        } catch (Exception e) {
+            LOG.error("FCMPush init failed");
+            e.printStackTrace();
+        }
     }
 
 

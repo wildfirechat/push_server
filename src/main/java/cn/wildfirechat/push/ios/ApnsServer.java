@@ -21,12 +21,7 @@ import org.springframework.util.StringUtils;
 
 import javax.annotation.PostConstruct;
 import java.io.File;
-import java.io.IOException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.util.Calendar;
-
-import static java.lang.System.exit;
 
 @Component
 public class ApnsServer  {
@@ -110,13 +105,9 @@ public class ApnsServer  {
                             .build();
                 }
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
+            LOG.error("ApnsServer init failed");
             e.printStackTrace();
-            exit(-1);
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
-        } catch (InvalidKeyException e) {
-            throw new RuntimeException(e);
         }
     }
 

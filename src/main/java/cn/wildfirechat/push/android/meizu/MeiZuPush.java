@@ -25,7 +25,13 @@ public class MeiZuPush {
 
     @PostConstruct
     public void init() {
-        this.flymePush = new IFlymePush(mConfig.getAppSecret());
+        try {
+            //初始化推送sdk
+            this.flymePush = new IFlymePush(mConfig.getAppSecret());
+        } catch (Exception e) {
+            LOG.error("MeiZuPush init failed");
+            e.printStackTrace();
+        }
     }
 
     @Autowired
