@@ -33,6 +33,9 @@
 4. 在注册成功后会得到deviceToken，调用IM SDK的setDeviceToken接口传人deviceToken和类型。
 5. 推送服务添加对这种类型的处理。
 
+## 接入个推或者极光
+我们提供有个推的分支，切换过去，然后按照个推文档申请推送功能。但要注意只有开通厂商推送功能才可以真的做到离线推送。极光推送可以参考个推或者上面添加其他推送服务的说明来添加，注意同样需要开通厂商推送来实现离线推送。
+
 ## 使用到的开源代码
 1. [TypeBuilder](https://github.com/ikidou/TypeBuilder) 一个用于生成泛型的简易Builder
 
