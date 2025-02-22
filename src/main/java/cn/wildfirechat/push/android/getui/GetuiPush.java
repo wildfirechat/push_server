@@ -112,6 +112,9 @@ public class GetuiPush {
         /*设置ios厂商参数*/
         IosDTO iosDTO = new IosDTO();
         pushChannel.setIos(iosDTO);
+        if (pushMessage.pushMessageType == 1 || pushMessage.pushMessageType == 2) {
+            iosDTO.setType("voip");
+        }
         // 相同的collapseId会覆盖之前的消息
         iosDTO.setApnsCollapseId("" + pushMessage.messageId);
         Aps aps = new Aps();
