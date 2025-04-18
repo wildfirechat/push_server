@@ -31,6 +31,7 @@ public class PushMessage {
     public boolean isHiddenDetail;
     public String language;
     public long messageId;
+    public long callStartUid;
     //当消息被撤回/删除/更新时，这个值为true。
     public boolean republish;
 

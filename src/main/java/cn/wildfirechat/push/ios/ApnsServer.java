@@ -21,7 +21,7 @@ import org.springframework.util.StringUtils;
 
 import javax.annotation.PostConstruct;
 import java.io.File;
-import java.util.Calendar;
+import java.util.*;
 
 @Component
 public class ApnsServer  {
@@ -128,6 +128,40 @@ public class ApnsServer  {
         return 0;
     }
 
+    private static class TimeUUID {
+        UUID uuid;
+        long timestamp;
+
+        public TimeUUID(UUID uuid) {
+            this.uuid = uuid;
+            this.timestamp = System.currentTimeMillis();
+        }
+    }
+
+    private Map<Long, TimeUUID> callPushId = new HashMap<>();
+
+    private synchronized void addCallPushId(long callId, UUID uuid) {
+        callPushId.put(callId, new TimeUUID(uuid));
+
+        //remove history record
+        Iterator<Map.Entry<Long, TimeUUID>> iterator = callPushId.entrySet().iterator();
+        long now = System.currentTimeMillis();
+        while (iterator.hasNext()) {
+            Map.Entry<Long, TimeUUID> entry = iterator.next();
+            if (now - entry.getValue().timestamp > 10*60*1000) {
+                iterator.remove();
+            }
+        }
+    }
+
+    private synchronized UUID getCallPushId(long callId) {
+        TimeUUID timeUUID = callPushId.remove(callId);
+        if (timeUUID != null) {
+            return timeUUID.uuid;
+        }
+        return null;
+    }
+
     public void pushMessage(PushMessage pushMessage) {
         ApnsClient service;
         String sound = mConfig.alert;
@@ -137,9 +171,14 @@ public class ApnsServer  {
             collapseId = pushMessage.messageId + "";
         }
 
-        if (pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_VOIP_INVITE) {
+        boolean isCallInvite = pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_VOIP_INVITE;
+
+        if (isCallInvite) {
             sound = mConfig.voipAlert;
         } else if(pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_VOIP_BYE || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_VOIP_ANSWER) {
+            if (pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_VOIP_BYE && pushMessage.callStartUid > 0) {
+                collapseId = pushMessage.callStartUid + "";
+            }
             sound = null;
         } else if(pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_RECALLED || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_DELETED) {
             sound = null;
@@ -177,6 +216,12 @@ public class ApnsServer  {
         Calendar c = Calendar.getInstance();
         ApnsPushNotification pushNotification;
 
+        UUID apnsId = null;
+
+        if(pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_VOIP_BYE && pushMessage.callStartUid > 0) {
+            apnsId = getCallPushId(pushMessage.callStartUid);
+        }
+
         if (!mConfig.voipFeature || pushMessage.pushMessageType != PushMessageType.PUSH_MESSAGE_TYPE_VOIP_INVITE) {
             if (pushMessage.getPushType() == IOSPushType.IOS_PUSH_TYPE_DISTRIBUTION) {
                 service = productSvc;
@@ -186,7 +231,7 @@ public class ApnsServer  {
             if(pushMessage.pushMessageType != PushMessageType.PUSH_MESSAGE_TYPE_VOIP_INVITE || StringUtils.isEmpty(pushMessage.getVoipDeviceToken())) {
                 c.add(Calendar.MINUTE, 10); //普通推送
                 String payload = payloadBuilder.buildWithDefaultMaximumLength();
-                pushNotification = new SimpleApnsPushNotification(pushMessage.deviceToken, pushMessage.packageName, payload, c.getTime(), DeliveryPriority.CONSERVE_POWER, PushType.ALERT, collapseId);
+                pushNotification = new SimpleApnsPushNotification(pushMessage.deviceToken, pushMessage.packageName, payload, c.getTime(), DeliveryPriority.CONSERVE_POWER, PushType.ALERT, collapseId, apnsId);
             } else {
                 c.add(Calendar.MINUTE, 1); //voip通知，使用普通推送
                 payloadBuilder.setContentAvailable(true);
@@ -194,7 +239,7 @@ public class ApnsServer  {
                 payloadBuilder.addCustomProperty("voip_type", pushMessage.pushMessageType);
                 payloadBuilder.addCustomProperty("voip_data", pushMessage.pushData);
                 String payload = payloadBuilder.buildWithDefaultMaximumLength();
-                pushNotification = new SimpleApnsPushNotification(pushMessage.deviceToken, pushMessage.packageName, payload, c.getTime(), DeliveryPriority.IMMEDIATE, PushType.BACKGROUND, collapseId);
+                pushNotification = new SimpleApnsPushNotification(pushMessage.deviceToken, pushMessage.packageName, payload, c.getTime(), DeliveryPriority.IMMEDIATE, PushType.BACKGROUND, collapseId, apnsId);
             }
         } else {
             if (pushMessage.getPushType() == IOSPushType.IOS_PUSH_TYPE_DISTRIBUTION) {
@@ -204,7 +249,7 @@ public class ApnsServer  {
             }
             c.add(Calendar.MINUTE, 1);
             String payload = payloadBuilder.buildWithDefaultMaximumLength();
-            pushNotification = new SimpleApnsPushNotification(pushMessage.voipDeviceToken, pushMessage.packageName + ".voip", payload, c.getTime(), DeliveryPriority.IMMEDIATE, PushType.VOIP, collapseId);
+            pushNotification = new SimpleApnsPushNotification(pushMessage.voipDeviceToken, pushMessage.packageName + ".voip", payload, c.getTime(), DeliveryPriority.IMMEDIATE, PushType.VOIP, collapseId, apnsId);
         }
 
         SimpleApnsPushNotification simpleApnsPushNotification = (SimpleApnsPushNotification)pushNotification;
@@ -228,6 +273,10 @@ public class ApnsServer  {
                 } else {
                     LOG.info("push success: {}", pushNotificationResponse.getApnsId().toString());
                     LOG.info("token invalidate timestamp: {}", pushNotificationResponse.getTokenInvalidationTimestamp());
+
+                    if (isCallInvite) {
+                        addCallPushId(pushMessage.messageId, pushNotificationResponse.getApnsId());
+                    }
                 }
             } else {
                 // Something went wrong when trying to send the notification to the
