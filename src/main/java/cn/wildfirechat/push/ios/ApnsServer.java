@@ -206,6 +206,8 @@ public class ApnsServer  {
         payloadBuilder.setSound(sound);
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("sender", pushMessage.sender);
+        jsonObject.put("senderName", pushMessage.senderName);
+        jsonObject.put("senderPortrait", pushMessage.senderPortrait);
         jsonObject.put("convType", pushMessage.convType);
         jsonObject.put("convTarget", pushMessage.target);
         jsonObject.put("convLine", pushMessage.line);
