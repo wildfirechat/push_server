@@ -34,6 +34,7 @@ public class PushMessage {
     public long callStartUid;
     //当消息被撤回/删除/更新时，这个值为true。
     public boolean republish;
+    public int existBadgeNumber;
 
     public String getSender() {
         return sender;
@@ -193,5 +194,13 @@ public class PushMessage {
 
     public void setRepublish(boolean republish) {
         this.republish = republish;
+    }
+
+    public int getExistBadgeNumber() {
+        return existBadgeNumber;
+    }
+
+    public void setExistBadgeNumber(int existBadgeNumber) {
+        this.existBadgeNumber = existBadgeNumber;
     }
 }

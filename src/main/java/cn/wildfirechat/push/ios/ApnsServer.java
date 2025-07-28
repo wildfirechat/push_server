@@ -190,7 +190,7 @@ public class ApnsServer  {
             LOG.error("not support push message type:{}", pushMessage.pushMessageType);
         }
 
-        int badge = pushMessage.getUnReceivedMsg();
+        int badge = pushMessage.getUnReceivedMsg() + pushMessage.getExistBadgeNumber();
         if (badge <= 0) {
             badge = 1;
         }
