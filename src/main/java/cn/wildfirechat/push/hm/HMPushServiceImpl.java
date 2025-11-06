@@ -8,6 +8,7 @@ import cn.wildfirechat.push.hm.payload.VoipPayload;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTCreator;
 import com.auth0.jwt.algorithms.Algorithm;
+import com.google.gson.Gson;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
@@ -30,12 +31,19 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.text.MessageFormat;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class HMPushServiceImpl implements HMPushService {
     private static final String AUD = "https://oauth-login.cloud.huawei.com/oauth2/v3/token";
     private static final Charset DEFAULT_CHARSET = Charset.forName("UTF-8");
     private static final Logger LOG = LoggerFactory.getLogger(HMPushServiceImpl.class);
+    private ExecutorService executorService = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors(), Runtime.getRuntime().availableProcessors() * 100,
+            60L, TimeUnit.SECONDS,
+            new SynchronousQueue<Runnable>());
 
     @Autowired
     HMConfig config;
@@ -77,31 +85,43 @@ public class HMPushServiceImpl implements HMPushService {
 
     @Override
     public Object push(PushMessage pushMessage) {
-        try {
-            String jwt = null;
-            jwt = createJwt();
-
-            if (pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_RECALLED || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_DELETED) {
-                //Todo not implement
-                //撤回或者删除消息，需要更新远程通知，暂未实现
-                return null;
-            }
-
-            if (config.isSupportVoipPush() && (pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_VOIP_INVITE || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_VOIP_BYE)) {
-                VoipPayload voipPayload = VoipPayload.buildAlertPayload(pushMessage);
-                String response = httpPost(this.pushUrl, jwt, 10, voipPayload.toString(), 10000, 10000);
-                LOG.info("Push voip message to {} response {}", pushMessage.getDeviceToken(), response);
-            } else {
-                AlertPayload alertPayload = AlertPayload.buildAlertPayload(pushMessage);
-                String response = httpPost(this.pushUrl, jwt, 0, alertPayload.toString(), 10000, 10000);
-                LOG.info("Push alert message to {} response {}", pushMessage.getDeviceToken(), response);
-            }
-
-        } catch (NoSuchAlgorithmException | InvalidKeySpecException | IOException e) {
-            e.printStackTrace();
+        LOG.info("HM push {}", new Gson().toJson(pushMessage));
+        if(Utility.filterPush(pushMessage)) {
+            LOG.info("canceled");
+            return "Canceled";
         }
 
-        return null;
+        final long start = System.currentTimeMillis();
+        executorService.execute(() -> {
+            long now = System.currentTimeMillis();
+            if (now - start > 15000) {
+                LOG.error("等待太久，消息抛弃");
+                return;
+            }
+            try {
+                String jwt = createJwt();
+                if (pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_RECALLED || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_DELETED) {
+                    //Todo not implement
+                    //撤回或者删除消息，需要更新远程通知，暂未实现
+                    return;
+                }
+
+                if (config.isSupportVoipPush() && (pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_VOIP_INVITE || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_VOIP_BYE)) {
+                    VoipPayload voipPayload = VoipPayload.buildAlertPayload(pushMessage);
+                    String response = httpPost(this.pushUrl, jwt, 10, voipPayload.toString(), 10000, 10000);
+                    LOG.info("Push voip message to {} response {}", pushMessage.getDeviceToken(), response);
+                } else {
+                    AlertPayload alertPayload = AlertPayload.buildAlertPayload(pushMessage);
+                    String response = httpPost(this.pushUrl, jwt, 0, alertPayload.toString(), 10000, 10000);
+                    LOG.info("Push alert message to {} response {}", pushMessage.getDeviceToken(), response);
+                }
+
+            } catch (NoSuchAlgorithmException | InvalidKeySpecException | IOException e) {
+                e.printStackTrace();
+            }
+        });
+
+        return "OK";
     }
 
     private String httpPost(String httpUrl, String jwt, int pushType, String data, int connectTimeout, int readTimeout) throws IOException {
