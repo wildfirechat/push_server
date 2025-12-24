@@ -107,12 +107,12 @@ public class HMPushServiceImpl implements HMPushService {
                 }
 
                 if (config.isSupportVoipPush() && (pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_VOIP_INVITE || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_VOIP_BYE)) {
-                    VoipPayload voipPayload = VoipPayload.buildAlertPayload(pushMessage);
-                    String response = httpPost(this.pushUrl, jwt, 10, voipPayload.toString(), 10000, 10000);
+                    RequestBody voipRequestBody = RequestBody.buildVoipRequestBody(pushMessage);
+                    String response = httpPost(this.pushUrl, jwt, 10, voipRequestBody.toString(), 10000, 10000);
                     LOG.info("Push voip message to {} response {}", pushMessage.getDeviceToken(), response);
                 } else {
-                    AlertPayload alertPayload = AlertPayload.buildAlertPayload(pushMessage);
-                    String response = httpPost(this.pushUrl, jwt, 0, alertPayload.toString(), 10000, 10000);
+                    RequestBody alertRequestBody = RequestBody.buildAlertRequestBody(pushMessage);
+                    String response = httpPost(this.pushUrl, jwt, 0, alertRequestBody.toString(), 10000, 10000);
                     LOG.info("Push alert message to {} response {}", pushMessage.getDeviceToken(), response);
                 }
 
