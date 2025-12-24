@@ -8,25 +8,15 @@ import com.google.gson.Gson;
 import java.util.ArrayList;
 
 
-public class VoipPayload {
-    Payload payload;
-    Target target;
+public class VoipPayload extends Payload {
+    public String extraData;
 
-    @Override
-    public String toString() {
-        return new Gson().toJson(this);
-    }
-
-    public static VoipPayload buildAlertPayload(PushMessage pushMessage) {
-        Target target = new Target();
-        target.token = new ArrayList<>();
-        target.token.add(pushMessage.deviceToken);
-
+    public static VoipPayload buildVoipPayload(PushMessage pushMessage) {
         VoipPayload voipPayload = new VoipPayload();
-        voipPayload.payload = new Payload();
-        voipPayload.payload.extraData = "TODO";
-        voipPayload.target = target;
 
+        // 由于一般应用无法申请 voip 权限，故暂未实现
+        // https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/push-apply-right#section7291115452410
+        voipPayload.extraData = "TODO";
         return voipPayload;
     }
 }

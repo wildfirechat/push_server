@@ -3,20 +3,12 @@ package cn.wildfirechat.push.hm.payload;
 import cn.wildfirechat.push.PushMessage;
 import cn.wildfirechat.push.PushMessageType;
 import cn.wildfirechat.push.Utility;
-import cn.wildfirechat.push.hm.payload.internal.ClickAction;
-import cn.wildfirechat.push.hm.payload.internal.Notification;
-import cn.wildfirechat.push.hm.payload.internal.Payload;
-import cn.wildfirechat.push.hm.payload.internal.Target;
+import cn.wildfirechat.push.hm.payload.internal.*;
 import com.google.gson.Gson;
 import org.json.simple.JSONObject;
 
-import java.text.MessageFormat;
-import java.util.ArrayList;
-
-
-public class AlertPayload {
-    Payload payload;
-    Target target;
+public class AlertPayload extends Payload{
+    Notification notification;
 
     @Override
     public String toString() {
@@ -24,10 +16,12 @@ public class AlertPayload {
     }
 
     public static AlertPayload buildAlertPayload(PushMessage pushMessage) {
+        AlertPayload alertPayload = new AlertPayload();
         Notification notification = new Notification();
         String[] titleAndBody = Utility.getPushTitleAndContent(pushMessage);
         notification.title = titleAndBody[0];
         notification.body = titleAndBody[1];
+        alertPayload.notification = notification;
 
         ClickAction clickAction = new ClickAction();
 
@@ -45,14 +39,13 @@ public class AlertPayload {
 
         notification.clickAction = clickAction;
 
-        Target target = new Target();
-        target.token = new ArrayList<>();
-        target.token.add(pushMessage.deviceToken);
-
-        AlertPayload alertPayload = new AlertPayload();
-        alertPayload.payload = new Payload();
-        alertPayload.payload.notification = notification;
-        alertPayload.target = target;
+        Badge badge = new Badge();
+        int badgeNum = pushMessage.getUnReceivedMsg() + pushMessage.getExistBadgeNumber();
+        if (badgeNum <= 0) {
+            badgeNum = 1;
+        }
+        badge.setNum = badgeNum;
+        notification.badge = badge;
 
         return alertPayload;
     }
