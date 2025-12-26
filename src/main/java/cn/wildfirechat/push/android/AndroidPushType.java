@@ -9,4 +9,6 @@ public interface AndroidPushType {
     int ANDROID_PUSH_TYPE_FCM = 6;
 
     int ANDROID_PUSH_TYPE_GETUI = 7;
+    int ANDROID_PUSH_TYPE_JPUSH = 8;
+    int ANDROID_PUSH_TYPE_HONOR = 9;
 }

@@ -6,6 +6,7 @@ import cn.wildfirechat.push.Utility;
 import cn.wildfirechat.push.android.fcm.FCMPush;
 import cn.wildfirechat.push.android.getui.GetuiPush;
 import cn.wildfirechat.push.android.hms.HMSPush;
+import cn.wildfirechat.push.android.honor.HonorPush;
 import cn.wildfirechat.push.android.meizu.MeiZuPush;
 import cn.wildfirechat.push.android.oppo.OppoPush;
 import cn.wildfirechat.push.android.vivo.VivoPush;
@@ -45,6 +46,9 @@ public class AndroidPushServiceImpl implements AndroidPushService {
     @Autowired
     private GetuiPush getuiPush;
 
+    @Autowired
+    private HonorPush honorPush;
+
     private ExecutorService executorService = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors(), Runtime.getRuntime().availableProcessors() * 100,
         60L, TimeUnit.SECONDS,
         new SynchronousQueue<Runnable>());
@@ -56,7 +60,7 @@ public class AndroidPushServiceImpl implements AndroidPushService {
             LOG.info("canceled");
             return "Canceled";
         }
-        if(pushMessage.line == 1) {
+        if (pushMessage.line == 1) {
             LOG.info("ignore moments messages");
             return "Canceled";
         }
@@ -90,6 +94,9 @@ public class AndroidPushServiceImpl implements AndroidPushService {
                     break;
                 case AndroidPushType.ANDROID_PUSH_TYPE_GETUI:
                     getuiPush.push(pushMessage, true);
+                    break;
+                case AndroidPushType.ANDROID_PUSH_TYPE_HONOR:
+                    honorPush.push(pushMessage);
                     break;
                 default:
                     LOG.info("unknown push type");

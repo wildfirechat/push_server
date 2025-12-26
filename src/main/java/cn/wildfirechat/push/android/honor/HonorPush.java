@@ -1,8 +1,8 @@
-package cn.wildfirechat.push.android.hms;
+package cn.wildfirechat.push.android.honor;
 
 
 import cn.wildfirechat.push.PushMessage;
-
+import cn.wildfirechat.push.android.honor.internal.RequestBody;
 import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -21,40 +21,41 @@ import java.text.MessageFormat;
 import java.util.List;
 
 @Component
-public class HMSPush {
-    private static final Logger LOG = LoggerFactory.getLogger(HMSPush.class);
-    private static final String tokenUrl = "https://oauth-login.cloud.huawei.com/oauth2/v3/token"; //获取认证Token的URL
-    private static final String apiUrl = "https://push-api.cloud.huawei.com/v1/%s/messages:send"; //应用级消息下发API
+public class HonorPush {
+    private static final Logger LOG = LoggerFactory.getLogger(HonorPush.class);
+    private static final String tokenUrl = "https://iam.developer.honor.com/auth/token"; //获取认证Token的URL
+    private static final String apiUrl = "https://push-api.cloud.honor.com/api/v1/%s/sendMessage"; //应用级消息下发API
     private String accessToken;//下发通知消息的认证Token
     private long tokenExpiredTime = 0;  //accessToken的过期时间，初始化为0
 
     @Autowired
-    private HMSConfig mConfig;
+    private HonorConfig mConfig;
 
     /**
      * 检查token是否有效
+     *
      * @return true if token is valid and not expired
      */
     private boolean isTokenValid() {
         if (StringUtils.isEmpty(accessToken)) {
-            LOG.debug("HMS token is empty");
+            LOG.debug("Honor token is empty");
             return false;
         }
 
         long currentTime = System.currentTimeMillis();
         if (tokenExpiredTime <= currentTime) {
-            LOG.debug("HMS token expired. Current: {}, Expired: {}", currentTime, tokenExpiredTime);
+            LOG.debug("Honor token expired. Current: {}, Expired: {}", currentTime, tokenExpiredTime);
             return false;
         }
 
         long remainingTime = (tokenExpiredTime - currentTime) / 1000;
-        LOG.debug("HMS token is valid, remaining {} seconds", remainingTime);
+        LOG.debug("Honor token is valid, remaining {} seconds", remainingTime);
         return true;
     }
 
     //获取下发通知消息的认证Token
     private void refreshToken() throws IOException {
-        LOG.info("hms refresh token");
+        LOG.info("Honor refresh token");
         String msgBody = MessageFormat.format(
             "grant_type=client_credentials&client_secret={0}&client_id={1}",
             URLEncoder.encode(mConfig.getAppSecret(), "UTF-8"), mConfig.getAppId());
@@ -65,11 +66,11 @@ public class HMSPush {
             accessToken = obj.getString("access_token");
             // 设置过期时间，提前5分钟刷新
             long expiresIn = obj.getLong("expires_in") * 1000; // 转换为毫秒
-            tokenExpiredTime = System.currentTimeMillis() + expiresIn - 5*60*1000;
-            LOG.info("hms token refreshed successfully, expires in {} seconds", obj.getLong("expires_in"));
+            tokenExpiredTime = System.currentTimeMillis() + expiresIn - 5 * 60 * 1000;
+            LOG.info("Honor token refreshed successfully, expires in {} seconds", obj.getLong("expires_in"));
         } else {
             LOG.error("Failed to get access_token from response: {}", response);
-            throw new IOException("Failed to get access_token from hms auth response");
+            throw new IOException("Failed to get access_token from Honor auth response");
         }
     }
 
@@ -80,7 +81,7 @@ public class HMSPush {
             try {
                 refreshToken();
             } catch (IOException e) {
-                LOG.error("Failed to refresh hms token", e);
+                LOG.error("Failed to refresh Honor token", e);
                 return; // token刷新失败，直接返回
             }
         }
@@ -122,7 +123,7 @@ public class HMSPush {
 //        JSONObject payload = new JSONObject();
 //        payload.put("hps", hps);
 //
-//        LOG.info("send push to HMS {}", payload);
+//        LOG.info("send push to Honor {}", payload);
 
         try {
 //            String postBody = MessageFormat.format(
@@ -132,7 +133,7 @@ public class HMSPush {
 //                URLEncoder.encode(String.valueOf(System.currentTimeMillis() / 1000),"UTF-8"),
 //                URLEncoder.encode(deviceTokens.toString(),"UTF-8"),
 //                URLEncoder.encode(payload.toString(),"UTF-8"));
-            HMSPushPayload alertPayload = HMSPushPayload.buildAlertPayload(pushMessage,  mConfig.getAppId());
+            RequestBody alertPayload = RequestBody.buildRequestBody(pushMessage, mConfig.getAppId());
             LOG.info("Push message {}", alertPayload);
             //String postUrl = apiUrl + "?nsp_ctx=" + URLEncoder.encode("{\"ver\":\"1\", \"appId\":\"" + mConfig.getAppId() + "\"}", "UTF-8");
             String postUrl = String.format(apiUrl, mConfig.getAppId());
@@ -151,13 +152,14 @@ public class HMSPush {
 
         try {
             URL url = new URL(httpUrl);
-            urlConnection = (HttpURLConnection)url.openConnection();
+            urlConnection = (HttpURLConnection) url.openConnection();
             urlConnection.setRequestMethod("POST");
             urlConnection.setDoOutput(true);
             urlConnection.setDoInput(true);
             if (StringUtils.isNotEmpty(jwt)) {
                 urlConnection.setRequestProperty("Content-Type", "application/json");
                 urlConnection.setRequestProperty("Authorization", "Bearer " + jwt);
+                urlConnection.setRequestProperty("timestamp", "" + System.currentTimeMillis());
                 //urlConnection.setRequestProperty("push-type", pushType + "");
             } else {
                 urlConnection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
@@ -186,8 +188,7 @@ public class HMSPush {
             }
             LOG.info(strBuf.toString());
             return strBuf.toString();
-        }
-        finally {
+        } finally {
             IOUtils.closeQuietly(outPut);
             IOUtils.closeQuietly(in);
             if (urlConnection != null) {
