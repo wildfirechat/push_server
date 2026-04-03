@@ -1,10 +1,8 @@
-package cn.wildfirechat.push.android.getui;
+package cn.wildfirechat.push.getui;
 
 
 import cn.wildfirechat.push.PushMessage;
-import cn.wildfirechat.push.PushMessageType;
 import cn.wildfirechat.push.Utility;
-import cn.wildfirechat.push.android.xiaomi.XiaomiConfig;
 import com.getui.push.v2.sdk.ApiHelper;
 import com.getui.push.v2.sdk.GtApiConfiguration;
 import com.getui.push.v2.sdk.api.PushApi;
@@ -19,13 +17,6 @@ import com.getui.push.v2.sdk.dto.req.message.android.Ups;
 import com.getui.push.v2.sdk.dto.req.message.ios.Alert;
 import com.getui.push.v2.sdk.dto.req.message.ios.Aps;
 import com.getui.push.v2.sdk.dto.req.message.ios.IosDTO;
-import com.google.gson.Gson;
-import com.meizu.push.sdk.server.IFlymePush;
-import com.xiaomi.xmpush.server.Constants;
-import com.xiaomi.xmpush.server.Message;
-import com.xiaomi.xmpush.server.Result;
-import com.xiaomi.xmpush.server.Sender;
-import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,10 +24,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import javax.annotation.PostConstruct;
-import java.io.IOException;
 import java.util.Map;
-
-import static com.xiaomi.xmpush.server.Message.NOTIFY_TYPE_ALL;
 
 @Component
 public class GetuiPush {

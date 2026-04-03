@@ -1,10 +1,9 @@
 package cn.wildfirechat.push.android;
 
 import cn.wildfirechat.push.PushMessage;
-import cn.wildfirechat.push.PushMessageType;
 import cn.wildfirechat.push.Utility;
 import cn.wildfirechat.push.android.fcm.FCMPush;
-import cn.wildfirechat.push.android.getui.GetuiPush;
+import cn.wildfirechat.push.getui.GetuiPush;
 import cn.wildfirechat.push.android.hms.HMSPush;
 import cn.wildfirechat.push.android.honor.HonorPush;
 import cn.wildfirechat.push.android.meizu.MeiZuPush;
