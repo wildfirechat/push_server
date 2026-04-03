@@ -10,6 +10,7 @@ import cn.wildfirechat.push.android.meizu.MeiZuPush;
 import cn.wildfirechat.push.android.oppo.OppoPush;
 import cn.wildfirechat.push.android.vivo.VivoPush;
 import cn.wildfirechat.push.android.xiaomi.XiaomiPush;
+import cn.wildfirechat.push.unipush.UniPush;
 import com.google.gson.Gson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +48,9 @@ public class AndroidPushServiceImpl implements AndroidPushService {
 
     @Autowired
     private HonorPush honorPush;
+
+    @Autowired
+    private UniPush uniPush;
 
     private ExecutorService executorService = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors(), Runtime.getRuntime().availableProcessors() * 100,
         60L, TimeUnit.SECONDS,
@@ -96,6 +100,9 @@ public class AndroidPushServiceImpl implements AndroidPushService {
                     break;
                 case AndroidPushType.ANDROID_PUSH_TYPE_HONOR:
                     honorPush.push(pushMessage);
+                    break;
+                case AndroidPushType.PUSH_TYPE_UNIPUSH_V2:
+                    uniPush.push(pushMessage);
                     break;
                 default:
                     LOG.info("unknown push type");

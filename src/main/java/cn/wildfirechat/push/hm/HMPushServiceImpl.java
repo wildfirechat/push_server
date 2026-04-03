@@ -3,8 +3,10 @@ package cn.wildfirechat.push.hm;
 import cn.wildfirechat.push.PushMessage;
 import cn.wildfirechat.push.PushMessageType;
 import cn.wildfirechat.push.Utility;
+import cn.wildfirechat.push.android.AndroidPushType;
 import cn.wildfirechat.push.hm.payload.AlertPayload;
 import cn.wildfirechat.push.hm.payload.VoipPayload;
+import cn.wildfirechat.push.unipush.UniPush;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTCreator;
 import com.auth0.jwt.algorithms.Algorithm;
@@ -48,6 +50,9 @@ public class HMPushServiceImpl implements HMPushService {
     @Autowired
     HMConfig config;
 
+    @Autowired
+    private UniPush uniPush;
+
     private String pushUrl;
 
     @PostConstruct
@@ -86,9 +91,14 @@ public class HMPushServiceImpl implements HMPushService {
     @Override
     public Object push(PushMessage pushMessage) {
         LOG.info("HM push {}", new Gson().toJson(pushMessage));
-        if(Utility.filterPush(pushMessage)) {
+        if (Utility.filterPush(pushMessage)) {
             LOG.info("canceled");
             return "Canceled";
+        }
+
+        if (pushMessage.pushType == AndroidPushType.PUSH_TYPE_UNIPUSH_V2) {
+            uniPush.push(pushMessage);
+            return "ok";
         }
 
         final long start = System.currentTimeMillis();

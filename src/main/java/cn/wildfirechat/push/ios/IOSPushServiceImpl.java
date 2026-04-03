@@ -4,6 +4,7 @@ import cn.wildfirechat.push.PushMessage;
 import cn.wildfirechat.push.Utility;
 import cn.wildfirechat.push.android.AndroidPushType;
 import cn.wildfirechat.push.getui.GetuiPush;
+import cn.wildfirechat.push.unipush.UniPush;
 import com.google.gson.Gson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +24,9 @@ public class IOSPushServiceImpl implements IOSPushService {
 
     @Autowired
     private GetuiPush getuiPush;
+
+    @Autowired
+    private UniPush uniPush;
 
     private ExecutorService executorService = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors(), Runtime.getRuntime().availableProcessors() * 100,
             60L, TimeUnit.SECONDS,
@@ -46,6 +50,8 @@ public class IOSPushServiceImpl implements IOSPushService {
                 apnsServer.pushMessage(pushMessage);
             } else if(pushMessage.pushType == AndroidPushType.ANDROID_PUSH_TYPE_GETUI) {
                 getuiPush.push(pushMessage, false);
+            } else if (pushMessage.pushType == AndroidPushType.PUSH_TYPE_UNIPUSH_V2) {
+                uniPush.push(pushMessage);
             } else {
                 LOG.error("Unknown ios push type: {}", pushMessage.pushType);
             }
