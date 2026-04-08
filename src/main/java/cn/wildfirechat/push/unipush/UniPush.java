@@ -2,7 +2,6 @@ package cn.wildfirechat.push.unipush;
 
 import cn.wildfirechat.push.PushMessage;
 import cn.wildfirechat.push.Utility;
-import cn.wildfirechat.push.getui.GetuiConfig;
 import com.google.gson.Gson;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
@@ -99,6 +98,7 @@ public class UniPush {
         String clientId;
         String title;
         String content;
+        boolean forceNotification = true;
         Map<String, Object> payload;
         Map<String, String> category;
 
@@ -116,6 +116,7 @@ public class UniPush {
             category.put("huawei", config.getHuaweiCategory());
             category.put("vivo", config.getVivoCategory());
             uniPushBody.category = category;
+            uniPushBody.forceNotification = true;
 
             return uniPushBody;
         }
