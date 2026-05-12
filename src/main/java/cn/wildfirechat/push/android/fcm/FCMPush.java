@@ -25,17 +25,39 @@ public class FCMPush {
 
     @PostConstruct
     private void init() throws Exception {
-        try {
+        buildFirebaseApp();
+    }
 
-        FileInputStream refreshToken = new FileInputStream(mConfig.getCredentialsPath());
-        FirebaseOptions options = FirebaseOptions.builder()
-                .setCredentials(GoogleCredentials.fromStream(refreshToken))
-                .setDatabaseUrl("https://<DATABASE_NAME>.firebaseio.com/")
-                .build();
-        FirebaseApp.initializeApp(options);
+    public synchronized void refresh() {
+        try {
+            FirebaseApp app = FirebaseApp.getInstance();
+            app.delete();
+        } catch (IllegalStateException e) {
+            // FirebaseApp not initialized yet, ignore
         } catch (Exception e) {
-            LOG.error("FCMPush init failed");
-            e.printStackTrace();
+            LOG.error("FirebaseApp delete failed", e);
+        }
+        buildFirebaseApp();
+    }
+
+    private synchronized void buildFirebaseApp() {
+        String credentialsPath = mConfig.getCredentialsPath();
+        if (credentialsPath == null || credentialsPath.trim().isEmpty()) {
+            LOG.warn("FCM credentialsPath is not configured");
+            return;
+        }
+        try (FileInputStream refreshToken = new FileInputStream(credentialsPath)) {
+            FirebaseOptions.Builder optionsBuilder = FirebaseOptions.builder()
+                    .setCredentials(GoogleCredentials.fromStream(refreshToken));
+            // 如果配置了 databaseUrl，则设置
+            String databaseUrl = mConfig.getDatabaseUrl();
+            if (databaseUrl != null && !databaseUrl.trim().isEmpty()) {
+                optionsBuilder.setDatabaseUrl(databaseUrl);
+            }
+            FirebaseApp.initializeApp(optionsBuilder.build());
+            LOG.info("FCMPush initialized successfully");
+        } catch (Exception e) {
+            LOG.error("FCMPush init failed", e);
         }
     }
 
@@ -56,9 +78,9 @@ public class FCMPush {
             // registration token.
             String response = FirebaseMessaging.getInstance().send(message);
             // Response is a message ID string.
-            System.out.println("Successfully sent message: " + response);
-        } catch (FirebaseMessagingException e) {
-            e.printStackTrace();
+            LOG.info("Successfully sent message: {}", response);
+        } catch (Exception e) {
+            LOG.error("FCM push failed", e);
         }
     }
 }

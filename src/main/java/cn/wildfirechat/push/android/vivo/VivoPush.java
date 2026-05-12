@@ -27,6 +27,11 @@ public class VivoPush {
     private String authToken;
 
     public void push(PushMessage pushMessage) {
+        if (StringUtils.isEmpty(mConfig.getAppId()) || "0".equals(mConfig.getAppId())
+                || StringUtils.isEmpty(mConfig.getAppKey()) || StringUtils.isEmpty(mConfig.getAppSecret())) {
+            LOG.info("VivoPush config is not complete, skip push");
+            return;
+        }
         String regId = pushMessage.getDeviceToken();
         // 添加regId有效性检查
         if (!isValidVivoRegId(regId)) {

@@ -2,11 +2,9 @@ package cn.wildfirechat.push.hm;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.PropertySource;
 
 @Configuration
 @ConfigurationProperties(prefix = "hm")
-@PropertySource(value = "file:config/hm.properties")
 public class HMConfig {
     private String privateKey;
     private String iss;

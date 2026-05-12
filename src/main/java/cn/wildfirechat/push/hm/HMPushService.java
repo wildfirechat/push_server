@@ -4,4 +4,5 @@ import cn.wildfirechat.push.PushMessage;
 
 public interface HMPushService {
     Object push(PushMessage pushMessage);
+    void testPush(PushMessage pushMessage) throws Exception;
 }

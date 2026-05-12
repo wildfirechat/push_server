@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.json.simple.parser.ParseException;
 
 
@@ -28,6 +29,10 @@ public class XiaomiPush {
 
 
     public void push(PushMessage pushMessage) {
+        if (StringUtils.isEmpty(mConfig.getAppSecret())) {
+            LOG.info("XiaomiPush appSecret is not configured, skip push");
+            return;
+        }
         Constants.useOfficial();
         Sender sender = new Sender(mConfig.getAppSecret());
 

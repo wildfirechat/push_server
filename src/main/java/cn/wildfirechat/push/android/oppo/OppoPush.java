@@ -28,18 +28,22 @@ public class OppoPush {
     @PostConstruct
     private void init() {
         try {
+            if (StringUtils.isEmpty(mConfig.getAppKey()) || StringUtils.isEmpty(mConfig.getAppSecret())) {
+                LOG.info("OppoPush appKey or appSecret is not configured, skip init");
+                return;
+            }
             mSender = new Sender(mConfig.getAppKey(), mConfig.getAppSecret());
         } catch (Exception e) {
-            LOG.error("OppoPush init failed");
-            e.printStackTrace();
+            LOG.error("OppoPush init failed", e);
         }
     }
 
 
 
     public void push(PushMessage pushMessage) {
-        if (mSender == null) {
-            LOG.error("Oppo push message can't sent, because not initial correctly");
+        if (mSender == null || StringUtils.isEmpty(mConfig.getAppKey()) || StringUtils.isEmpty(mConfig.getAppSecret())) {
+            LOG.info("OppoPush is not configured, skip push");
+            return;
         }
 
         Result result = null;

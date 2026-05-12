@@ -1,6 +1,7 @@
 package cn.wildfirechat.push.hm;
 
 import cn.wildfirechat.push.PushMessage;
+import cn.wildfirechat.push.admin.StatisticsService;
 import cn.wildfirechat.push.PushMessageType;
 import cn.wildfirechat.push.Utility;
 import cn.wildfirechat.push.android.AndroidPushType;
@@ -17,8 +18,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -47,17 +50,46 @@ public class HMPushServiceImpl implements HMPushService {
             60L, TimeUnit.SECONDS,
             new SynchronousQueue<Runnable>());
 
+    @PreDestroy
+    public void shutdown() {
+        executorService.shutdown();
+        try {
+            if (!executorService.awaitTermination(5, TimeUnit.SECONDS)) {
+                executorService.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executorService.shutdownNow();
+        }
+    }
+
     @Autowired
     HMConfig config;
 
     @Autowired
     private UniPush uniPush;
 
+    @Autowired
+    private StatisticsService statisticsService;
+
     private String pushUrl;
 
     @PostConstruct
     void setupPushUrl() {
+        buildPushUrl();
+    }
+
+    public synchronized void refresh() {
+        buildPushUrl();
+    }
+
+    private synchronized void buildPushUrl() {
+        if (config.getProjectId() == null || config.getProjectId().trim().isEmpty()) {
+            LOG.info("HMPushService projectId is not configured, skip building pushUrl");
+            this.pushUrl = null;
+            return;
+        }
         this.pushUrl = String.format("https://push-api.cloud.huawei.com/v3/%s/messages:send", config.getProjectId());
+        LOG.info("HMPushService pushUrl refreshed: {}", this.pushUrl);
     }
 
     private String createJwt() throws NoSuchAlgorithmException, InvalidKeySpecException {
@@ -89,16 +121,96 @@ public class HMPushServiceImpl implements HMPushService {
 
 
     @Override
+    public void testPush(PushMessage pushMessage) throws Exception {
+        LOG.info("HM test push {}", new Gson().toJson(pushMessage));
+        if (Utility.filterPush(pushMessage)) {
+            throw new Exception("消息被过滤，取消推送");
+        }
+        final String platform = pushMessage.pushType == AndroidPushType.PUSH_TYPE_UNIPUSH_V2 ? "unipush_hm" : "hm";
+        if (pushMessage.pushType == AndroidPushType.PUSH_TYPE_UNIPUSH_V2) {
+            if (statisticsService != null) {
+                statisticsService.recordPush(platform);
+            }
+            try {
+                uniPush.push(pushMessage);
+                if (statisticsService != null) {
+                    statisticsService.recordSuccess(platform);
+                }
+            } catch (Exception e) {
+                if (statisticsService != null) {
+                    statisticsService.recordFail(platform);
+                }
+                throw e;
+            }
+            return;
+        }
+        if (StringUtils.isEmpty(config.getProjectId()) || StringUtils.isEmpty(config.getIss()) || StringUtils.isEmpty(config.getKid()) || StringUtils.isEmpty(config.getPrivateKey())) {
+            LOG.info("HMPushService is not configured, skip testPush");
+            throw new Exception("鸿蒙推送尚未配置");
+        }
+        if (statisticsService != null) {
+            statisticsService.recordPush(platform);
+        }
+        try {
+            String jwt = createJwt();
+            if (pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_RECALLED || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_DELETED) {
+                if (statisticsService != null) {
+                    statisticsService.recordSuccess(platform);
+                }
+                return;
+            }
+            if (config.isSupportVoipPush() && (pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_VOIP_INVITE || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_VOIP_BYE)) {
+                RequestBody voipRequestBody = RequestBody.buildVoipRequestBody(pushMessage);
+                String response = httpPost(this.pushUrl, jwt, 10, voipRequestBody.toString(), 10000, 10000);
+                LOG.info("Push voip message to {} response {}", pushMessage.getDeviceToken(), response);
+            } else {
+                RequestBody alertRequestBody = RequestBody.buildAlertRequestBody(pushMessage);
+                String response = httpPost(this.pushUrl, jwt, 0, alertRequestBody.toString(), 10000, 10000);
+                LOG.info("Push alert message to {} response {}", pushMessage.getDeviceToken(), response);
+            }
+            if (statisticsService != null) {
+                statisticsService.recordSuccess(platform);
+            }
+        } catch (Exception e) {
+            if (statisticsService != null) {
+                statisticsService.recordFail(platform);
+            }
+            throw e;
+        }
+    }
+
+    @Override
     public Object push(PushMessage pushMessage) {
         LOG.info("HM push {}", new Gson().toJson(pushMessage));
         if (Utility.filterPush(pushMessage)) {
             LOG.info("canceled");
             return "Canceled";
         }
+        if (StringUtils.isEmpty(config.getProjectId()) || StringUtils.isEmpty(config.getIss()) || StringUtils.isEmpty(config.getKid()) || StringUtils.isEmpty(config.getPrivateKey())) {
+            LOG.info("HMPushService is not configured, skip push");
+            return "Not configured";
+        }
 
         if (pushMessage.pushType == AndroidPushType.PUSH_TYPE_UNIPUSH_V2) {
-            uniPush.push(pushMessage);
+            if (statisticsService != null) {
+                statisticsService.recordPush("unipush_hm");
+            }
+            try {
+                uniPush.push(pushMessage);
+                if (statisticsService != null) {
+                    statisticsService.recordSuccess("unipush_hm");
+                }
+            } catch (Exception e) {
+                LOG.error("HM uniPush error", e);
+                if (statisticsService != null) {
+                    statisticsService.recordFail("unipush_hm");
+                }
+            }
             return "ok";
+        }
+
+        if (statisticsService != null) {
+            statisticsService.recordPush("hm");
         }
 
         final long start = System.currentTimeMillis();
@@ -113,6 +225,9 @@ public class HMPushServiceImpl implements HMPushService {
                 if (pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_RECALLED || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_DELETED) {
                     //Todo not implement
                     //撤回或者删除消息，需要更新远程通知，暂未实现
+                    if (statisticsService != null) {
+                        statisticsService.recordSuccess("hm");
+                    }
                     return;
                 }
 
@@ -125,9 +240,14 @@ public class HMPushServiceImpl implements HMPushService {
                     String response = httpPost(this.pushUrl, jwt, 0, alertRequestBody.toString(), 10000, 10000);
                     LOG.info("Push alert message to {} response {}", pushMessage.getDeviceToken(), response);
                 }
-
+                if (statisticsService != null) {
+                    statisticsService.recordSuccess("hm");
+                }
             } catch (NoSuchAlgorithmException | InvalidKeySpecException | IOException e) {
                 e.printStackTrace();
+                if (statisticsService != null) {
+                    statisticsService.recordFail("hm");
+                }
             }
         });
 

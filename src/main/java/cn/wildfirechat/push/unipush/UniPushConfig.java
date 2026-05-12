@@ -2,11 +2,9 @@ package cn.wildfirechat.push.unipush;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.PropertySource;
 
 @Configuration
 @ConfigurationProperties(prefix = "unipush")
-@PropertySource(value = "file:config/unipush.properties")
 public class UniPushConfig {
     private String url;
     private String huaweiCategory;

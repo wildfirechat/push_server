@@ -75,6 +75,10 @@ public class HMSPush {
 
     //发送Push消息
     public void push(PushMessage pushMessage) {
+        if (StringUtils.isEmpty(mConfig.getAppId()) || "0".equals(mConfig.getAppId()) || StringUtils.isEmpty(mConfig.getAppSecret())) {
+            LOG.info("HMSPush config is not complete, skip push");
+            return;
+        }
         // 检查token是否有效，无效则刷新
         if (!isTokenValid()) {
             try {

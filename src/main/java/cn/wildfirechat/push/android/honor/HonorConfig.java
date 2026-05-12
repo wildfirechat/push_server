@@ -2,11 +2,9 @@ package cn.wildfirechat.push.android.honor;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.PropertySource;
 
 @Configuration
 @ConfigurationProperties(prefix = "honor")
-@PropertySource(value = "file:config/honor.properties")
 public class HonorConfig {
     private String appSecret;
     private String appId;

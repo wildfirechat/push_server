@@ -2,13 +2,12 @@ package cn.wildfirechat.push.android.fcm;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.PropertySource;
 
 @Configuration
 @ConfigurationProperties(prefix="fcm")
-@PropertySource(value = "file:config/fcm.properties")
 public class FCMConfig {
     private String credentialsPath;
+    private String databaseUrl;
 
     public String getCredentialsPath() {
         return credentialsPath;
@@ -16,5 +15,13 @@ public class FCMConfig {
 
     public void setCredentialsPath(String credentialsPath) {
         this.credentialsPath = credentialsPath;
+    }
+
+    public String getDatabaseUrl() {
+        return databaseUrl;
+    }
+
+    public void setDatabaseUrl(String databaseUrl) {
+        this.databaseUrl = databaseUrl;
     }
 }

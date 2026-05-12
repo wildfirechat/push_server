@@ -2,11 +2,9 @@ package cn.wildfirechat.push.android.vivo;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.PropertySource;
 
 @Configuration
 @ConfigurationProperties(prefix = "vivo")
-@PropertySource(value = "file:config/vivo.properties")
 public class VivoConfig {
     private String appSecret;
     private int appId;

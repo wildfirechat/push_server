@@ -35,83 +35,93 @@ public class ApnsServer  {
             new MicrometerApnsClientMetricsListener(meterRegistry,
                     "notifications", "apns_develop");
 
-    ApnsClient productSvc;
-    ApnsClient developSvc;
-    ApnsClient productVoipSvc;
-    ApnsClient developVoipSvc;
+    private volatile ApnsClient productSvc;
+    private volatile ApnsClient developSvc;
+    private volatile ApnsClient productVoipSvc;
+    private volatile ApnsClient developVoipSvc;
 
     @Autowired
     private ApnsConfig mConfig;
 
     @PostConstruct
     private void init() {
+        buildClients();
+    }
+
+    public synchronized void refresh() {
+        closeClients();
+        buildClients();
+    }
+
+    private synchronized void closeClients() {
+        if (productSvc != null) {
+            try { productSvc.close().await(); } catch (Exception e) { LOG.error("Close productSvc error", e); }
+            productSvc = null;
+        }
+        if (developSvc != null) {
+            try { developSvc.close().await(); } catch (Exception e) { LOG.error("Close developSvc error", e); }
+            developSvc = null;
+        }
+        if (productVoipSvc != null) {
+            try { productVoipSvc.close().await(); } catch (Exception e) { LOG.error("Close productVoipSvc error", e); }
+            productVoipSvc = null;
+        }
+        if (developVoipSvc != null) {
+            try { developVoipSvc.close().await(); } catch (Exception e) { LOG.error("Close developVoipSvc error", e); }
+            developVoipSvc = null;
+        }
+    }
+
+    private synchronized void buildClients() {
         if (StringUtils.isEmpty(mConfig.alert)) {
             mConfig.alert = "default";
         }
-
         if (StringUtils.isEmpty(mConfig.voipAlert)) {
-            mConfig.alert = "default";
+            mConfig.voipAlert = "default";
+        }
+
+        boolean hasP8 = !StringUtils.isEmpty(mConfig.authKeyPath) && !StringUtils.isEmpty(mConfig.keyId) && !StringUtils.isEmpty(mConfig.teamId);
+
+        if (!hasP8) {
+            LOG.info("APNs config is empty, skip building clients");
+            return;
         }
 
         try {
-            if (!StringUtils.isEmpty(mConfig.authKeyPath) && !StringUtils.isEmpty(mConfig.keyId) && !StringUtils.isEmpty(mConfig.teamId)) {
-                productSvc = new ApnsClientBuilder()
+            productSvc = new ApnsClientBuilder()
+                    .setApnsServer(ApnsClientBuilder.PRODUCTION_APNS_HOST)
+                    .setSigningKey(ApnsSigningKey.loadFromPkcs8File(new File(mConfig.authKeyPath), mConfig.teamId, mConfig.keyId))
+                    .setMetricsListener(productMetricsListener)
+                    .build();
+
+            developSvc = new ApnsClientBuilder()
+                    .setApnsServer(ApnsClientBuilder.DEVELOPMENT_APNS_HOST)
+                    .setSigningKey(ApnsSigningKey.loadFromPkcs8File(new File(mConfig.authKeyPath), mConfig.teamId, mConfig.keyId))
+                    .setMetricsListener(developMetricsListener)
+                    .build();
+
+            if (mConfig.voipFeature) {
+                productVoipSvc = new ApnsClientBuilder()
                         .setApnsServer(ApnsClientBuilder.PRODUCTION_APNS_HOST)
                         .setSigningKey(ApnsSigningKey.loadFromPkcs8File(new File(mConfig.authKeyPath), mConfig.teamId, mConfig.keyId))
                         .setMetricsListener(productMetricsListener)
                         .build();
-
-                developSvc = new ApnsClientBuilder()
+                developVoipSvc = new ApnsClientBuilder()
                         .setApnsServer(ApnsClientBuilder.DEVELOPMENT_APNS_HOST)
                         .setSigningKey(ApnsSigningKey.loadFromPkcs8File(new File(mConfig.authKeyPath), mConfig.teamId, mConfig.keyId))
                         .setMetricsListener(developMetricsListener)
                         .build();
-
-                if (mConfig.voipFeature) {
-                    productVoipSvc = new ApnsClientBuilder()
-                            .setApnsServer(ApnsClientBuilder.PRODUCTION_APNS_HOST)
-                            .setSigningKey(ApnsSigningKey.loadFromPkcs8File(new File(mConfig.authKeyPath), mConfig.teamId, mConfig.keyId))
-                            .setMetricsListener(productMetricsListener)
-                            .build();
-                    developVoipSvc = new ApnsClientBuilder()
-                            .setApnsServer(ApnsClientBuilder.DEVELOPMENT_APNS_HOST)
-                            .setSigningKey(ApnsSigningKey.loadFromPkcs8File(new File(mConfig.authKeyPath), mConfig.teamId, mConfig.keyId))
-                            .setMetricsListener(developMetricsListener)
-                            .build();
-                }
-            } else {
-                productSvc = new ApnsClientBuilder()
-                        .setApnsServer(ApnsClientBuilder.PRODUCTION_APNS_HOST)
-                        .setClientCredentials(new File(mConfig.cerPath), mConfig.cerPwd)
-                        .setMetricsListener(productMetricsListener)
-                        .build();
-
-                developSvc = new ApnsClientBuilder()
-                        .setApnsServer(ApnsClientBuilder.DEVELOPMENT_APNS_HOST)
-                        .setClientCredentials(new File(mConfig.cerPath), mConfig.cerPwd)
-                        .setMetricsListener(developMetricsListener)
-                        .build();
-
-                if (mConfig.voipFeature) {
-                    productVoipSvc = new ApnsClientBuilder()
-                            .setApnsServer(ApnsClientBuilder.PRODUCTION_APNS_HOST)
-                            .setClientCredentials(new File(mConfig.voipCerPath), mConfig.voipCerPwd)
-                            .setMetricsListener(productMetricsListener)
-                            .build();
-                    developVoipSvc = new ApnsClientBuilder()
-                            .setApnsServer(ApnsClientBuilder.DEVELOPMENT_APNS_HOST)
-                            .setClientCredentials(new File(mConfig.voipCerPath), mConfig.voipCerPwd)
-                            .setMetricsListener(developMetricsListener)
-                            .build();
-                }
             }
+            LOG.info("ApnsServer clients built successfully");
         } catch (Exception e) {
-            LOG.error("ApnsServer init failed");
-            e.printStackTrace();
+            LOG.error("ApnsServer init failed", e);
         }
     }
 
     public long getMessageId(PushMessage pushMessage) {
+        if (pushMessage.pushData == null) {
+            return 0;
+        }
         try {
             JSONObject jsonObject = (JSONObject)(new JSONParser().parse(pushMessage.pushData));
             if(jsonObject.get("messageUid") instanceof Long) {
@@ -123,7 +133,7 @@ public class ApnsServer  {
                 return (long)uid;
             }
         } catch (ParseException e) {
-            e.printStackTrace();
+            LOG.error("Parse push data error", e);
         }
         return 0;
     }
@@ -190,6 +200,17 @@ public class ApnsServer  {
             LOG.error("not support push message type:{}", pushMessage.pushMessageType);
         }
 
+        // 尽早确定 service 并检查是否可用
+        if (!mConfig.voipFeature || pushMessage.pushMessageType != PushMessageType.PUSH_MESSAGE_TYPE_VOIP_INVITE) {
+            service = pushMessage.getPushType() == IOSPushType.IOS_PUSH_TYPE_DISTRIBUTION ? productSvc : developSvc;
+        } else {
+            service = pushMessage.getPushType() == IOSPushType.IOS_PUSH_TYPE_DISTRIBUTION ? productVoipSvc : developVoipSvc;
+        }
+        if (service == null) {
+            LOG.error("APNs service not available for pushType:{}, voip:{}", pushMessage.getPushType(), pushMessage.pushMessageType);
+            return;
+        }
+
         int badge = pushMessage.getUnReceivedMsg() + pushMessage.getExistBadgeNumber();
         if (badge <= 0) {
             badge = 1;
@@ -225,11 +246,6 @@ public class ApnsServer  {
         }
 
         if (!mConfig.voipFeature || pushMessage.pushMessageType != PushMessageType.PUSH_MESSAGE_TYPE_VOIP_INVITE) {
-            if (pushMessage.getPushType() == IOSPushType.IOS_PUSH_TYPE_DISTRIBUTION) {
-                service = productSvc;
-            } else {
-                service = developSvc;
-            }
             if(pushMessage.pushMessageType != PushMessageType.PUSH_MESSAGE_TYPE_VOIP_INVITE || StringUtils.isEmpty(pushMessage.getVoipDeviceToken())) {
                 c.add(Calendar.MINUTE, 10); //普通推送
                 String payload = payloadBuilder.buildWithDefaultMaximumLength();
@@ -244,11 +260,6 @@ public class ApnsServer  {
                 pushNotification = new SimpleApnsPushNotification(pushMessage.deviceToken, pushMessage.packageName, payload, c.getTime(), DeliveryPriority.IMMEDIATE, PushType.BACKGROUND, collapseId, apnsId);
             }
         } else {
-            if (pushMessage.getPushType() == IOSPushType.IOS_PUSH_TYPE_DISTRIBUTION) {
-                service = productVoipSvc;
-            } else {
-                service = developVoipSvc;
-            }
             c.add(Calendar.MINUTE, 1);
             String payload = payloadBuilder.buildWithDefaultMaximumLength();
             pushNotification = new SimpleApnsPushNotification(pushMessage.voipDeviceToken, pushMessage.packageName + ".voip", payload, c.getTime(), DeliveryPriority.IMMEDIATE, PushType.VOIP, collapseId, apnsId);
@@ -256,11 +267,6 @@ public class ApnsServer  {
 
         SimpleApnsPushNotification simpleApnsPushNotification = (SimpleApnsPushNotification)pushNotification;
         LOG.info("CollapseId:{}", simpleApnsPushNotification.getCollapseId());
-
-        if (service == null) {
-            LOG.error("Service not exist!!!!");
-            return;
-        }
 
         final PushNotificationFuture<ApnsPushNotification, PushNotificationResponse<ApnsPushNotification>> sendNotificationFuture = service.sendNotification(pushNotification);
         sendNotificationFuture.addListener(future -> {
@@ -284,8 +290,7 @@ public class ApnsServer  {
                 // Something went wrong when trying to send the notification to the
                 // APNs gateway. We can find the exception that caused the failure
                 // by getting future.cause().
-                future.cause().printStackTrace();
-                LOG.error("apns push failure: {}", future.cause().getLocalizedMessage());
+                LOG.error("apns push failure", future.cause());
             }
         });
     }

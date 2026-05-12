@@ -17,7 +17,7 @@ public class PushMessage {
     public int pushMessageType;
     /**
      * 推送类型
-     * Android 推送分为小米/华为/魅族等，参考{@link cn.wildfirechat.push.android.AndroidPushType}
+     * Android 推送分为小米/华为/vivo/OPPO/FCM/个推/荣耀/UniPush 等，参考{@link cn.wildfirechat.push.android.AndroidPushType}
      * iOS 分别为开发和发布，参考{@link cn.wildfirechat.push.ios.IOSPushType}
      */
     public int pushType;

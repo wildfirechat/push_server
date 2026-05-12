@@ -2,11 +2,9 @@ package cn.wildfirechat.push.getui;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.PropertySource;
 
 @Configuration
 @ConfigurationProperties(prefix = "getui")
-@PropertySource(value = "file:config/getui.properties")
 public class GetuiConfig {
     private String appId;
     private String appKey;
