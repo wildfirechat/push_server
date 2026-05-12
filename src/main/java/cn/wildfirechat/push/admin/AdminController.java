@@ -2,10 +2,12 @@ package cn.wildfirechat.push.admin;
 
 import cn.wildfirechat.push.PushMessage;
 import cn.wildfirechat.push.admin.entity.AdminUser;
+import cn.wildfirechat.push.admin.entity.PushRecord;
 import cn.wildfirechat.push.admin.repository.AdminUserRepository;
 import cn.wildfirechat.push.android.AndroidPushService;
 import cn.wildfirechat.push.hm.HMPushService;
 import cn.wildfirechat.push.ios.IOSPushService;
+import org.springframework.data.domain.Page;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import org.slf4j.Logger;
@@ -19,6 +21,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -46,14 +49,49 @@ public class AdminController {
     @Autowired
     private HMPushService hmPushService;
 
+    @Autowired
+    private PushRecordService pushRecordService;
+
+    private static final int MAX_LOGIN_ATTEMPTS = 5;
+    private static final long LOCK_DURATION_MS = 60 * 60 * 1000; // 1 hour
+    private final Map<String, LoginAttempt> loginAttempts = new ConcurrentHashMap<>();
+
+    private static class LoginAttempt {
+        int count;
+        long firstFailTime;
+    }
+
     @PostMapping("/login")
     public Map<String, Object> login(@RequestBody Map<String, String> params) {
         Map<String, Object> result = new HashMap<>();
         String username = params.get("username");
         String password = params.get("password");
 
+        if (username == null || username.isEmpty()) {
+            result.put("code", 400);
+            result.put("message", "请输入用户名");
+            return result;
+        }
+
+        // Check lock status
+        LoginAttempt attempt = loginAttempts.get(username);
+        if (attempt != null && attempt.count >= MAX_LOGIN_ATTEMPTS) {
+            long elapsed = System.currentTimeMillis() - attempt.firstFailTime;
+            if (elapsed < LOCK_DURATION_MS) {
+                long remainingMinutes = (LOCK_DURATION_MS - elapsed) / (60 * 1000);
+                result.put("code", 423);
+                result.put("message", "登录失败次数过多，请 " + remainingMinutes + " 分钟后再试");
+                return result;
+            } else {
+                // Lock expired, clear record
+                loginAttempts.remove(username);
+            }
+        }
+
         Optional<AdminUser> userOpt = adminUserRepository.findByUsername(username);
         if (userOpt.isPresent() && passwordEncoder.matches(password, userOpt.get().getPassword())) {
+            // Login success, clear failure record
+            loginAttempts.remove(username);
             AdminUser user = userOpt.get();
             Algorithm algorithm = Algorithm.HMAC256(user.getSecretKey());
             String token = JWT.create()
@@ -65,8 +103,23 @@ public class AdminController {
             result.put("code", 200);
             result.put("token", token);
         } else {
-            result.put("code", 401);
-            result.put("message", "用户名或密码错误");
+            // Login failed, record attempt
+            if (attempt == null) {
+                attempt = new LoginAttempt();
+                attempt.count = 1;
+                attempt.firstFailTime = System.currentTimeMillis();
+                loginAttempts.put(username, attempt);
+            } else {
+                attempt.count++;
+            }
+            int remaining = MAX_LOGIN_ATTEMPTS - attempt.count;
+            if (remaining <= 0) {
+                result.put("code", 423);
+                result.put("message", "登录失败次数过多，账户已锁定 1 小时");
+            } else {
+                result.put("code", 401);
+                result.put("message", "用户名或密码错误，还剩 " + remaining + " 次机会");
+            }
         }
         return result;
     }
@@ -481,6 +534,39 @@ public class AdminController {
 
     private boolean isEmpty(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    @GetMapping("/records")
+    public Map<String, Object> getRecords(
+            @RequestParam(name = "startTime", required = false) String startTime,
+            @RequestParam(name = "endTime", required = false) String endTime,
+            @RequestParam(name = "success", required = false) Boolean success,
+            @RequestParam(name = "userId", required = false) String userId,
+            @RequestParam(name = "page", defaultValue = "1") int page,
+            @RequestParam(name = "size", defaultValue = "20") int size) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            Date start = null;
+            Date end = null;
+            if (startTime != null && !startTime.isEmpty()) {
+                start = sdf.parse(startTime);
+            }
+            if (endTime != null && !endTime.isEmpty()) {
+                end = sdf.parse(endTime);
+            }
+            Page<PushRecord> pageResult = pushRecordService.getRecords(start, end, success, userId, page, size);
+            result.put("code", 200);
+            result.put("data", pageResult.getContent());
+            result.put("total", pageResult.getTotalElements());
+            result.put("page", page);
+            result.put("size", size);
+        } catch (Exception e) {
+            LOG.error("查询推送记录失败", e);
+            result.put("code", 500);
+            result.put("message", "查询失败: " + e.getMessage());
+        }
+        return result;
     }
 
     private String getCurrentUsername(HttpServletRequest request) {

@@ -13,7 +13,24 @@
       <button class="btn-login" @click="login" :disabled="loading">
         {{ loading ? '登录中...' : '登录' }}
       </button>
+      <div class="forgot-link">
+        <a href="javascript:void(0)" @click="showForgotTip">忘记密码？</a>
+      </div>
       <div class="error-msg" v-if="errorMsg">{{ errorMsg }}</div>
+
+      <div v-if="forgotTipVisible" class="tip-overlay" @click.self="forgotTipVisible = false">
+        <div class="tip-box">
+          <h4>恢复默认密码</h4>
+          <p>如果您忘记了管理员密码，可以通过以下步骤恢复默认密码：</p>
+          <ol>
+            <li>停止推送服务</li>
+            <li>删除数据库中的 <code>admin_user</code> 表数据</li>
+            <li>重新启动服务，系统会自动创建默认管理员账号</li>
+          </ol>
+          <p class="tip-note">默认账号：<b>admin</b> / 默认密码：<b>admin123</b></p>
+          <button class="btn-close" @click="forgotTipVisible = false">我知道了</button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -28,7 +45,8 @@ export default {
       username: 'admin',
       password: '',
       errorMsg: '',
-      loading: false
+      loading: false,
+      forgotTipVisible: false
     }
   },
   methods: {
@@ -47,6 +65,8 @@ export default {
         if (res.code === 200) {
           localStorage.setItem('admin_token', res.token)
           this.$emit('login-success')
+        } else if (res.code === 423) {
+          this.errorMsg = res.message || '账户已锁定，请稍后再试'
         } else {
           this.errorMsg = res.message || '登录失败'
         }
@@ -55,6 +75,9 @@ export default {
       } finally {
         this.loading = false
       }
+    },
+    showForgotTip() {
+      this.forgotTipVisible = true
     }
   }
 }
@@ -122,5 +145,80 @@ export default {
   font-size: 13px;
   margin-top: 12px;
   text-align: center;
+}
+.forgot-link {
+  text-align: right;
+  margin-top: 10px;
+}
+.forgot-link a {
+  color: #667eea;
+  font-size: 13px;
+  text-decoration: none;
+}
+.forgot-link a:hover {
+  text-decoration: underline;
+}
+.tip-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.tip-box {
+  background: #fff;
+  padding: 28px 32px;
+  border-radius: 8px;
+  width: 420px;
+  max-width: 90%;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+.tip-box h4 {
+  margin: 0 0 14px 0;
+  font-size: 16px;
+  color: #333;
+}
+.tip-box p {
+  font-size: 13px;
+  color: #555;
+  line-height: 1.6;
+  margin: 0 0 10px 0;
+}
+.tip-box ol {
+  margin: 0 0 14px 0;
+  padding-left: 20px;
+  font-size: 13px;
+  color: #555;
+  line-height: 1.8;
+}
+.tip-box code {
+  background: #f0f0f0;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+.tip-note {
+  background: #f5f7fa;
+  padding: 10px 12px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
+.btn-close {
+  width: 100%;
+  padding: 10px;
+  background: #667eea;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.btn-close:hover {
+  background: #5a6fd6;
 }
 </style>

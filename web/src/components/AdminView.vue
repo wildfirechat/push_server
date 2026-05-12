@@ -5,6 +5,7 @@
       <ul class="menu">
         <li :class="{ active: activeTab === 'config' }" @click="activeTab = 'config'">配置管理</li>
         <li :class="{ active: activeTab === 'test' }" @click="activeTab = 'test'">推送测试</li>
+        <li :class="{ active: activeTab === 'records' }" @click="activeTab = 'records'">推送记录</li>
         <li :class="{ active: activeTab === 'stats' }" @click="activeTab = 'stats'">推送统计</li>
         <li :class="{ active: activeTab === 'password' }" @click="activeTab = 'password'">修改密码</li>
       </ul>
@@ -16,6 +17,7 @@
       </div>
       <ConfigPanel v-if="activeTab === 'config'" />
       <TestPanel v-if="activeTab === 'test'" />
+      <RecordPanel v-if="activeTab === 'records'" />
       <StatsPanel v-if="activeTab === 'stats'" />
       <PasswordPanel v-if="activeTab === 'password'" @password-changed="logout" />
     </div>
@@ -25,12 +27,13 @@
 <script>
 import ConfigPanel from './ConfigPanel.vue'
 import TestPanel from './TestPanel.vue'
+import RecordPanel from './RecordPanel.vue'
 import StatsPanel from './StatsPanel.vue'
 import PasswordPanel from './PasswordPanel.vue'
 
 export default {
   name: 'AdminView',
-  components: { ConfigPanel, TestPanel, StatsPanel, PasswordPanel },
+  components: { ConfigPanel, TestPanel, RecordPanel, StatsPanel, PasswordPanel },
   data() {
     return {
       activeTab: 'config'
@@ -38,7 +41,7 @@ export default {
   },
   computed: {
     pageTitle() {
-      const titles = { config: '配置管理', test: '推送测试', stats: '推送统计', password: '修改密码' }
+      const titles = { config: '配置管理', test: '推送测试', records: '推送记录', stats: '推送统计', password: '修改密码' }
       return titles[this.activeTab] || ''
     }
   },

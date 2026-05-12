@@ -62,7 +62,7 @@ public class FCMPush {
     }
 
 
-    public void push(PushMessage pushMessage) {
+    public void push(PushMessage pushMessage) throws Exception {
         String[] arr = Utility.getPushTitleAndContent(pushMessage);
         String title = arr[0];
         String body = arr[1];
@@ -73,14 +73,7 @@ public class FCMPush {
                 .setToken(pushMessage.deviceToken)
                 .build();
 
-        try {
-            // Send a message to the device corresponding to the provided
-            // registration token.
-            String response = FirebaseMessaging.getInstance().send(message);
-            // Response is a message ID string.
-            LOG.info("Successfully sent message: {}", response);
-        } catch (Exception e) {
-            LOG.error("FCM push failed", e);
-        }
+        String response = FirebaseMessaging.getInstance().send(message);
+        LOG.info("Successfully sent message: {}", response);
     }
 }

@@ -28,7 +28,7 @@ public class XiaomiPush {
     private XiaomiConfig mConfig;
 
 
-    public void push(PushMessage pushMessage) {
+    public void push(PushMessage pushMessage) throws Exception {
         if (StringUtils.isEmpty(mConfig.getAppSecret())) {
             LOG.info("XiaomiPush appSecret is not configured, skip push");
             return;
@@ -73,15 +73,10 @@ public class XiaomiPush {
                     .build();
         }
 
-        Result result = null;
-        try {
-            result = sender.send(message, token, 3);
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (ParseException e) {
-            e.printStackTrace();
+        Result result = sender.send(message, token, 3);
+        if (result.getErrorCode() != null && !result.getErrorCode().toString().equals("0")) {
+            throw new RuntimeException("Xiaomi push failed: " + result.getErrorCode() + " - " + result.getReason());
         }
-
         LOG.info("Server response: MessageId: " + result.getMessageId()
             + " ErrorCode: " + result.getErrorCode().toString()
             + " Reason: " + result.getReason());

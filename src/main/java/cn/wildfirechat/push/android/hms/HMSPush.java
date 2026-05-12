@@ -74,7 +74,7 @@ public class HMSPush {
     }
 
     //发送Push消息
-    public void push(PushMessage pushMessage) {
+    public void push(PushMessage pushMessage) throws Exception {
         if (StringUtils.isEmpty(mConfig.getAppId()) || "0".equals(mConfig.getAppId()) || StringUtils.isEmpty(mConfig.getAppSecret())) {
             LOG.info("HMSPush config is not complete, skip push");
             return;
@@ -128,23 +128,14 @@ public class HMSPush {
 //
 //        LOG.info("send push to HMS {}", payload);
 
-        try {
-//            String postBody = MessageFormat.format(
-//                "access_token={0}&nsp_svc={1}&nsp_ts={2}&device_token_list={3}&payload={4}",
-//                URLEncoder.encode(accessToken,"UTF-8"),
-//                URLEncoder.encode("openpush.message.api.send","UTF-8"),
-//                URLEncoder.encode(String.valueOf(System.currentTimeMillis() / 1000),"UTF-8"),
-//                URLEncoder.encode(deviceTokens.toString(),"UTF-8"),
-//                URLEncoder.encode(payload.toString(),"UTF-8"));
-            HMSPushPayload alertPayload = HMSPushPayload.buildAlertPayload(pushMessage,  mConfig.getAppId());
-            LOG.info("Push message {}", alertPayload);
-            //String postUrl = apiUrl + "?nsp_ctx=" + URLEncoder.encode("{\"ver\":\"1\", \"appId\":\"" + mConfig.getAppId() + "\"}", "UTF-8");
-            String postUrl = String.format(apiUrl, mConfig.getAppId());
-            String response = httpPost(postUrl, accessToken, alertPayload.toString(), 8000, 8000);
-            LOG.info("Push to {} response {}", pushMessage.getDeviceToken(), response);
-        } catch (IOException e) {
-            e.printStackTrace();
-            LOG.info("Push to {} with exception", pushMessage.getDeviceToken(), e);
+        HMSPushPayload alertPayload = HMSPushPayload.buildAlertPayload(pushMessage,  mConfig.getAppId());
+        LOG.info("Push message {}", alertPayload);
+        String postUrl = String.format(apiUrl, mConfig.getAppId());
+        String response = httpPost(postUrl, accessToken, alertPayload.toString(), 8000, 8000);
+        LOG.info("Push to {} response {}", pushMessage.getDeviceToken(), response);
+        JSONObject respObj = JSONObject.parseObject(response);
+        if (respObj != null && respObj.containsKey("code") && !"80000000".equals(respObj.getString("code"))) {
+            throw new RuntimeException("HMS push failed: " + respObj.getString("code") + " - " + respObj.getString("msg"));
         }
     }
 

@@ -26,7 +26,7 @@ public class VivoPush {
 
     private String authToken;
 
-    public void push(PushMessage pushMessage) {
+    public void push(PushMessage pushMessage) throws Exception {
         if (StringUtils.isEmpty(mConfig.getAppId()) || "0".equals(mConfig.getAppId())
                 || StringUtils.isEmpty(mConfig.getAppKey()) || StringUtils.isEmpty(mConfig.getAppSecret())) {
             LOG.info("VivoPush config is not complete, skip push");
@@ -46,50 +46,38 @@ public class VivoPush {
             refreshToken(); // 内部需要实现getToken逻辑
         }
 
-        Result resultMessage = null;
-        try {
-            String[] arr = Utility.getPushTitleAndContent(pushMessage);
-            String title = arr[0];
-            String body = arr[1];
+        String[] arr = Utility.getPushTitleAndContent(pushMessage);
+        String title = arr[0];
+        String body = arr[1];
 
-            // 升级点2：创建Sender时只需传入appSecret
-            Sender senderMessage = new Sender(mConfig.getAppSecret());
-            // 升级点3：必须设置认证token
-            senderMessage.setAuthToken(authToken);
+        Sender senderMessage = new Sender(mConfig.getAppSecret());
+        senderMessage.setAuthToken(authToken);
 
-            // 升级点4：使用新的Builder参数
-            Message.Builder builder = new Message.Builder()
-                    .regId(regId)
-                    .notifyType(3)
-                    .title(title)
-                    .content(body)
-                    .timeToLive(1000)
-                    .skipType(1)
-                    .networkType(-1)
-                    // 升级点5：新增必填字段requestId（使用时间戳+随机数防重复）
-                    .requestId(System.currentTimeMillis() + "_" + new Random().nextInt(1000))
-                    // 升级点6：新增必填字段pushMode（0-正式/1-测试）
-                    .pushMode(0);  // 根据实际环境设置
+        Message.Builder builder = new Message.Builder()
+                .regId(regId)
+                .notifyType(3)
+                .title(title)
+                .content(body)
+                .timeToLive(1000)
+                .skipType(1)
+                .networkType(-1)
+                .requestId(System.currentTimeMillis() + "_" + new Random().nextInt(1000))
+                .pushMode(0);
 
-            // 保留原有TTL逻辑
-            if (pushMessage.pushMessageType != PushMessageType.PUSH_MESSAGE_TYPE_NORMAL) {
-                builder.timeToLive(60);
-            } else {
-                builder.timeToLive(10 * 60);
-            }
-
-            resultMessage = senderMessage.sendSingle(builder.build());
-        } catch (Exception e) {
-            LOG.error("sendSingle error", e); // 升级点7：使用完整的异常堆栈
+        if (pushMessage.pushMessageType != PushMessageType.PUSH_MESSAGE_TYPE_NORMAL) {
+            builder.timeToLive(60);
+        } else {
+            builder.timeToLive(10 * 60);
         }
 
-        if (resultMessage != null) {
-            // 升级点8：优化日志格式
-            LOG.info("Vivo push response: [MessageId={}] [ErrorCode={}] [Reason={}]",
-                    resultMessage.getTaskId(),
-                    resultMessage.getResult(),
-                    resultMessage.getDesc());
+        Result resultMessage = senderMessage.sendSingle(builder.build());
+        if (resultMessage.getResult() != 0) {
+            throw new RuntimeException("Vivo push failed: " + resultMessage.getResult() + " - " + resultMessage.getDesc());
         }
+        LOG.info("Vivo push response: [MessageId={}] [ErrorCode={}] [Reason={}]",
+                resultMessage.getTaskId(),
+                resultMessage.getResult(),
+                resultMessage.getDesc());
     }
 
     // 新增的token刷新方法（需根据示例代码实现）

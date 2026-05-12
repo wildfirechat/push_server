@@ -3,6 +3,8 @@ package cn.wildfirechat.push.ios;
 import cn.wildfirechat.push.PushMessage;
 import cn.wildfirechat.push.PushMessageType;
 import cn.wildfirechat.push.Utility;
+import cn.wildfirechat.push.admin.PushRecordService;
+import cn.wildfirechat.push.admin.StatisticsService;
 import com.turo.pushy.apns.*;
 import com.turo.pushy.apns.auth.ApnsSigningKey;
 import com.turo.pushy.apns.metrics.micrometer.MicrometerApnsClientMetricsListener;
@@ -42,6 +44,12 @@ public class ApnsServer  {
 
     @Autowired
     private ApnsConfig mConfig;
+
+    @Autowired
+    private StatisticsService statisticsService;
+
+    @Autowired
+    private PushRecordService pushRecordService;
 
     @PostConstruct
     private void init() {
@@ -268,29 +276,46 @@ public class ApnsServer  {
         SimpleApnsPushNotification simpleApnsPushNotification = (SimpleApnsPushNotification)pushNotification;
         LOG.info("CollapseId:{}", simpleApnsPushNotification.getCollapseId());
 
+        final String apnsPlatform = pushMessage.getPushType() == IOSPushType.IOS_PUSH_TYPE_DISTRIBUTION ? "apns_product" : "apns_develop";
+        if (statisticsService != null) {
+            statisticsService.recordPush(apnsPlatform);
+        }
+
         final PushNotificationFuture<ApnsPushNotification, PushNotificationResponse<ApnsPushNotification>> sendNotificationFuture = service.sendNotification(pushNotification);
         sendNotificationFuture.addListener(future -> {
-            // When using a listener, callers should check for a failure to send a
-            // notification by checking whether the future itself was successful
-            // since an exception will not be thrown.
             if (future.isSuccess()) {
                 final PushNotificationResponse<ApnsPushNotification> pushNotificationResponse =
                         sendNotificationFuture.getNow();
                 if(!pushNotificationResponse.isAccepted()) {
-                    LOG.error("apns push failure: {}", pushNotificationResponse.getRejectionReason());
+                    String reason = pushNotificationResponse.getRejectionReason();
+                    LOG.error("apns push failure: {}", reason);
+                    if (statisticsService != null) {
+                        statisticsService.recordFail(apnsPlatform);
+                    }
+                    if (pushRecordService != null) {
+                        pushRecordService.saveRecord(pushMessage, apnsPlatform, false, "APNs rejected: " + reason);
+                    }
                 } else {
                     LOG.info("push success: {}", pushNotificationResponse.getApnsId().toString());
-                    LOG.info("token invalidate timestamp: {}", pushNotificationResponse.getTokenInvalidationTimestamp());
-
+                    if (statisticsService != null) {
+                        statisticsService.recordSuccess(apnsPlatform);
+                    }
+                    if (pushRecordService != null) {
+                        pushRecordService.saveRecord(pushMessage, apnsPlatform, true, null);
+                    }
                     if (isCallInvite) {
                         addCallPushId(pushMessage.messageId, pushNotificationResponse.getApnsId());
                     }
                 }
             } else {
-                // Something went wrong when trying to send the notification to the
-                // APNs gateway. We can find the exception that caused the failure
-                // by getting future.cause().
+                String error = future.cause() != null ? future.cause().getMessage() : "unknown";
                 LOG.error("apns push failure", future.cause());
+                if (statisticsService != null) {
+                    statisticsService.recordFail(apnsPlatform);
+                }
+                if (pushRecordService != null) {
+                    pushRecordService.saveRecord(pushMessage, apnsPlatform, false, "APNs send failed: " + error);
+                }
             }
         });
     }

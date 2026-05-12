@@ -121,14 +121,9 @@ public class GetuiPush {
         /*设置接收人信息结束*/
         /**** 设置厂商相关参数，更多参数请查看文档或对象源码 ****/
 
-        // 进行cid单推
         ApiResult<Map<String, Map<String, String>>> apiResult = pushApi.pushToSingleByCid(pushDTO);
-        if (apiResult.isSuccess()) {
-            // success
-            System.out.println(apiResult.getData());
-        } else {
-            // failed
-            System.out.println("code:" + apiResult.getCode() + ", msg: " + apiResult.getMsg());
+        if (!apiResult.isSuccess()) {
+            throw new RuntimeException("Getui push failed: " + apiResult.getCode() + " - " + apiResult.getMsg());
         }
     }
 }

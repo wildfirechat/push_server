@@ -40,34 +40,21 @@ public class OppoPush {
 
 
 
-    public void push(PushMessage pushMessage) {
+    public void push(PushMessage pushMessage) throws Exception {
         if (mSender == null || StringUtils.isEmpty(mConfig.getAppKey()) || StringUtils.isEmpty(mConfig.getAppSecret())) {
             LOG.info("OppoPush is not configured, skip push");
             return;
         }
 
-        Result result = null;
-        try {
-            Notification notification = getNotification(pushMessage); //创建通知栏消息体
-
-            Target target = Target.build(pushMessage.deviceToken); //创建发送对象
-
-            result = mSender.unicastNotification(notification, target);  //发送单推消息
-
-            result.getStatusCode(); // 获取http请求状态码
-
-            result.getReturnCode(); // 获取平台返回码
-
-            result.getMessageId();  // 获取平台返回的messageId
-        } catch (Exception e) {
-            e.printStackTrace();
-            LOG.error("sendSingle error " + e.getMessage());
+        Notification notification = getNotification(pushMessage);
+        Target target = Target.build(pushMessage.deviceToken);
+        Result result = mSender.unicastNotification(notification, target);
+        if (result.getReturnCode().getCode() != 0) {
+            throw new RuntimeException("OPPO push failed: " + result.getReturnCode().getCode() + " - " + result.getReason());
         }
-        if (result != null) {
-            LOG.info("Server response: MessageId: " + result.getMessageId()
-                    + " ErrorCode: " + result.getReturnCode()
-                    + " Reason: " + result.getReason());
-        }
+        LOG.info("Server response: MessageId: " + result.getMessageId()
+                + " ErrorCode: " + result.getReturnCode()
+                + " Reason: " + result.getReason());
     }
 
     private Notification getNotification(PushMessage pushMessage) {

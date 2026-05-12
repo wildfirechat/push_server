@@ -1,5 +1,6 @@
 package cn.wildfirechat.push.ios;
 
+import cn.wildfirechat.push.admin.PushRecordService;
 import cn.wildfirechat.push.admin.StatisticsService;
 import cn.wildfirechat.push.PushMessage;
 import cn.wildfirechat.push.Utility;
@@ -33,6 +34,9 @@ public class IOSPushServiceImpl implements IOSPushService {
     @Autowired
     private StatisticsService statisticsService;
 
+    @Autowired
+    private PushRecordService pushRecordService;
+
     private ExecutorService executorService = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors(), Runtime.getRuntime().availableProcessors() * 100,
             60L, TimeUnit.SECONDS,
             new SynchronousQueue<Runnable>());
@@ -57,10 +61,14 @@ public class IOSPushServiceImpl implements IOSPushService {
             return "Canceled";
         }
 
-        final String platform;
         if(pushMessage.pushType < 3) {
-            platform = "apns";
-        } else if(pushMessage.pushType == AndroidPushType.ANDROID_PUSH_TYPE_GETUI) {
+            // APNs: statistics and records are handled by ApnsServer listener
+            apnsServer.pushMessage(pushMessage);
+            return "OK";
+        }
+
+        final String platform;
+        if(pushMessage.pushType == AndroidPushType.ANDROID_PUSH_TYPE_GETUI) {
             platform = "getui_ios";
         } else if (pushMessage.pushType == AndroidPushType.PUSH_TYPE_UNIPUSH_V2) {
             platform = "unipush_ios";
@@ -79,9 +87,7 @@ public class IOSPushServiceImpl implements IOSPushService {
                 return;
             }
             try {
-                if(pushMessage.pushType < 3) {
-                    apnsServer.pushMessage(pushMessage);
-                } else if(pushMessage.pushType == AndroidPushType.ANDROID_PUSH_TYPE_GETUI) {
+                if(pushMessage.pushType == AndroidPushType.ANDROID_PUSH_TYPE_GETUI) {
                     getuiPush.push(pushMessage, false);
                 } else if (pushMessage.pushType == AndroidPushType.PUSH_TYPE_UNIPUSH_V2) {
                     uniPush.push(pushMessage);
@@ -91,10 +97,16 @@ public class IOSPushServiceImpl implements IOSPushService {
                 if (statisticsService != null) {
                     statisticsService.recordSuccess(platform);
                 }
+                if (pushRecordService != null) {
+                    pushRecordService.saveRecord(pushMessage, platform, true, null);
+                }
             } catch (Exception e) {
                 LOG.error("iOS push error", e);
                 if (statisticsService != null) {
                     statisticsService.recordFail(platform);
+                }
+                if (pushRecordService != null) {
+                    pushRecordService.saveRecord(pushMessage, platform, false, e.getMessage());
                 }
             }
         });
@@ -107,10 +119,13 @@ public class IOSPushServiceImpl implements IOSPushService {
         if (Utility.filterPush(pushMessage)) {
             throw new Exception("消息被过滤，取消推送");
         }
-        final String platform;
         if (pushMessage.pushType < 3) {
-            platform = "apns";
-        } else if (pushMessage.pushType == AndroidPushType.ANDROID_PUSH_TYPE_GETUI) {
+            // APNs: statistics and records are handled by ApnsServer listener
+            apnsServer.pushMessage(pushMessage);
+            return;
+        }
+        final String platform;
+        if (pushMessage.pushType == AndroidPushType.ANDROID_PUSH_TYPE_GETUI) {
             platform = "getui_ios";
         } else if (pushMessage.pushType == AndroidPushType.PUSH_TYPE_UNIPUSH_V2) {
             platform = "unipush_ios";
@@ -121,9 +136,7 @@ public class IOSPushServiceImpl implements IOSPushService {
             statisticsService.recordPush(platform);
         }
         try {
-            if (pushMessage.pushType < 3) {
-                apnsServer.pushMessage(pushMessage);
-            } else if (pushMessage.pushType == AndroidPushType.ANDROID_PUSH_TYPE_GETUI) {
+            if (pushMessage.pushType == AndroidPushType.ANDROID_PUSH_TYPE_GETUI) {
                 getuiPush.push(pushMessage, false);
             } else if (pushMessage.pushType == AndroidPushType.PUSH_TYPE_UNIPUSH_V2) {
                 uniPush.push(pushMessage);
@@ -131,9 +144,15 @@ public class IOSPushServiceImpl implements IOSPushService {
             if (statisticsService != null) {
                 statisticsService.recordSuccess(platform);
             }
+            if (pushRecordService != null) {
+                pushRecordService.saveRecord(pushMessage, platform, true, null);
+            }
         } catch (Exception e) {
             if (statisticsService != null) {
                 statisticsService.recordFail(platform);
+            }
+            if (pushRecordService != null) {
+                pushRecordService.saveRecord(pushMessage, platform, false, e.getMessage());
             }
             throw e;
         }

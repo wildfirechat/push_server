@@ -8,6 +8,7 @@ import cn.wildfirechat.push.android.hms.HMSPush;
 import cn.wildfirechat.push.android.honor.HonorPush;
 import cn.wildfirechat.push.android.oppo.OppoPush;
 import cn.wildfirechat.push.android.vivo.VivoPush;
+import cn.wildfirechat.push.admin.PushRecordService;
 import cn.wildfirechat.push.admin.StatisticsService;
 import cn.wildfirechat.push.android.xiaomi.XiaomiPush;
 import cn.wildfirechat.push.unipush.UniPush;
@@ -52,6 +53,9 @@ public class AndroidPushServiceImpl implements AndroidPushService {
 
     @Autowired
     private StatisticsService statisticsService;
+
+    @Autowired
+    private PushRecordService pushRecordService;
 
     private ExecutorService executorService = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors(), Runtime.getRuntime().availableProcessors() * 100,
         60L, TimeUnit.SECONDS,
@@ -127,10 +131,16 @@ public class AndroidPushServiceImpl implements AndroidPushService {
                 if (statisticsService != null) {
                     statisticsService.recordSuccess(platform);
                 }
+                if (pushRecordService != null) {
+                    pushRecordService.saveRecord(pushMessage, platform, true, null);
+                }
             } catch (Exception e) {
                 LOG.error("Push error", e);
                 if (statisticsService != null) {
                     statisticsService.recordFail(platform);
+                }
+                if (pushRecordService != null) {
+                    pushRecordService.saveRecord(pushMessage, platform, false, e.getMessage());
                 }
             }
         });
@@ -179,9 +189,15 @@ public class AndroidPushServiceImpl implements AndroidPushService {
             if (statisticsService != null) {
                 statisticsService.recordSuccess(platform);
             }
+            if (pushRecordService != null) {
+                pushRecordService.saveRecord(pushMessage, platform, true, null);
+            }
         } catch (Exception e) {
             if (statisticsService != null) {
                 statisticsService.recordFail(platform);
+            }
+            if (pushRecordService != null) {
+                pushRecordService.saveRecord(pushMessage, platform, false, e.getMessage());
             }
             throw e;
         }

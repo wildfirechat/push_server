@@ -17,10 +17,6 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 // unipush 2.0
 // 仅针对 uniapp 使用，先参考 uni-chat-uts 的 readme，配置推送
@@ -28,22 +24,17 @@ import java.util.concurrent.TimeUnit;
 public class UniPush {
     private static final Logger LOG = LoggerFactory.getLogger(UniPush.class);
     private final Gson gson = new Gson();
-    private final ExecutorService executorService = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors(), Runtime.getRuntime().availableProcessors() * 100,
-            60L, TimeUnit.SECONDS,
-            new SynchronousQueue<Runnable>());
 
     @Autowired
     private UniPushConfig mConfig;
 
-    public void push(PushMessage pushMessage) {
+    public void push(PushMessage pushMessage) throws IOException {
         UniPushBody body = UniPushBody.buildUniPushBody(pushMessage, mConfig);
-        executorService.execute(() -> {
-            try {
-                httpPost(mConfig.getUrl(), gson.toJson(body), 10000, 10000);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });
+        String response = httpPost(mConfig.getUrl(), gson.toJson(body), 10000, 10000);
+        if (response == null) {
+            throw new RuntimeException("UniPush failed: no response");
+        }
+        LOG.info("UniPush response: {}", response);
     }
 
     public String httpPost(String httpUrl, String data, int connectTimeout, int readTimeout) throws IOException {
@@ -63,13 +54,12 @@ public class UniPush {
             urlConnection.setReadTimeout(readTimeout);
             urlConnection.connect();
 
-            // POST data
             outPut = urlConnection.getOutputStream();
             outPut.write(data.getBytes("UTF-8"));
             outPut.flush();
 
-            // read response
-            if (urlConnection.getResponseCode() < 400) {
+            int responseCode = urlConnection.getResponseCode();
+            if (responseCode < 400) {
                 in = urlConnection.getInputStream();
             } else {
                 in = urlConnection.getErrorStream();
@@ -80,10 +70,12 @@ public class UniPush {
             for (String line : lines) {
                 strBuf.append(line);
             }
-            LOG.info(strBuf.toString());
-            return strBuf.toString();
-        } catch (Exception e) {
-            LOG.error(e.getMessage());
+            String response = strBuf.toString();
+            LOG.info(response);
+            if (responseCode >= 400) {
+                throw new RuntimeException("UniPush HTTP error: " + responseCode + ", body: " + response);
+            }
+            return response;
         } finally {
             IOUtils.closeQuietly(outPut);
             IOUtils.closeQuietly(in);
@@ -91,7 +83,6 @@ public class UniPush {
                 urlConnection.disconnect();
             }
         }
-        return null;
     }
 
     private static class UniPushBody {

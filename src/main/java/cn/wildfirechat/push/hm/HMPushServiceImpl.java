@@ -1,6 +1,7 @@
 package cn.wildfirechat.push.hm;
 
 import cn.wildfirechat.push.PushMessage;
+import cn.wildfirechat.push.admin.PushRecordService;
 import cn.wildfirechat.push.admin.StatisticsService;
 import cn.wildfirechat.push.PushMessageType;
 import cn.wildfirechat.push.Utility;
@@ -8,6 +9,7 @@ import cn.wildfirechat.push.android.AndroidPushType;
 import cn.wildfirechat.push.hm.payload.AlertPayload;
 import cn.wildfirechat.push.hm.payload.VoipPayload;
 import cn.wildfirechat.push.unipush.UniPush;
+import com.alibaba.fastjson.JSONObject;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTCreator;
 import com.auth0.jwt.algorithms.Algorithm;
@@ -70,6 +72,9 @@ public class HMPushServiceImpl implements HMPushService {
 
     @Autowired
     private StatisticsService statisticsService;
+
+    @Autowired
+    private PushRecordService pushRecordService;
 
     private String pushUrl;
 
@@ -136,9 +141,15 @@ public class HMPushServiceImpl implements HMPushService {
                 if (statisticsService != null) {
                     statisticsService.recordSuccess(platform);
                 }
+                if (pushRecordService != null) {
+                    pushRecordService.saveRecord(pushMessage, platform, true, null);
+                }
             } catch (Exception e) {
                 if (statisticsService != null) {
                     statisticsService.recordFail(platform);
+                }
+                if (pushRecordService != null) {
+                    pushRecordService.saveRecord(pushMessage, platform, false, e.getMessage());
                 }
                 throw e;
             }
@@ -157,23 +168,28 @@ public class HMPushServiceImpl implements HMPushService {
                 if (statisticsService != null) {
                     statisticsService.recordSuccess(platform);
                 }
+                if (pushRecordService != null) {
+                    pushRecordService.saveRecord(pushMessage, platform, true, null);
+                }
                 return;
             }
+            String response;
             if (config.isSupportVoipPush() && (pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_VOIP_INVITE || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_VOIP_BYE)) {
                 RequestBody voipRequestBody = RequestBody.buildVoipRequestBody(pushMessage);
-                String response = httpPost(this.pushUrl, jwt, 10, voipRequestBody.toString(), 10000, 10000);
+                response = httpPost(this.pushUrl, jwt, 10, voipRequestBody.toString(), 10000, 10000);
                 LOG.info("Push voip message to {} response {}", pushMessage.getDeviceToken(), response);
             } else {
                 RequestBody alertRequestBody = RequestBody.buildAlertRequestBody(pushMessage);
-                String response = httpPost(this.pushUrl, jwt, 0, alertRequestBody.toString(), 10000, 10000);
+                response = httpPost(this.pushUrl, jwt, 0, alertRequestBody.toString(), 10000, 10000);
                 LOG.info("Push alert message to {} response {}", pushMessage.getDeviceToken(), response);
             }
-            if (statisticsService != null) {
-                statisticsService.recordSuccess(platform);
-            }
+            checkHmResponse(response, pushMessage, platform);
         } catch (Exception e) {
             if (statisticsService != null) {
                 statisticsService.recordFail(platform);
+            }
+            if (pushRecordService != null) {
+                pushRecordService.saveRecord(pushMessage, platform, false, e.getMessage());
             }
             throw e;
         }
@@ -200,10 +216,16 @@ public class HMPushServiceImpl implements HMPushService {
                 if (statisticsService != null) {
                     statisticsService.recordSuccess("unipush_hm");
                 }
+                if (pushRecordService != null) {
+                    pushRecordService.saveRecord(pushMessage, "unipush_hm", true, null);
+                }
             } catch (Exception e) {
                 LOG.error("HM uniPush error", e);
                 if (statisticsService != null) {
                     statisticsService.recordFail("unipush_hm");
+                }
+                if (pushRecordService != null) {
+                    pushRecordService.saveRecord(pushMessage, "unipush_hm", false, e.getMessage());
                 }
             }
             return "ok";
@@ -218,40 +240,78 @@ public class HMPushServiceImpl implements HMPushService {
             long now = System.currentTimeMillis();
             if (now - start > 15000) {
                 LOG.error("等待太久，消息抛弃");
+                if (pushRecordService != null) {
+                    pushRecordService.saveRecord(pushMessage, "hm", false, "等待太久，消息抛弃");
+                }
                 return;
             }
             try {
                 String jwt = createJwt();
                 if (pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_RECALLED || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_DELETED) {
-                    //Todo not implement
-                    //撤回或者删除消息，需要更新远程通知，暂未实现
                     if (statisticsService != null) {
                         statisticsService.recordSuccess("hm");
+                    }
+                    if (pushRecordService != null) {
+                        pushRecordService.saveRecord(pushMessage, "hm", true, null);
                     }
                     return;
                 }
 
+                String response;
                 if (config.isSupportVoipPush() && (pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_VOIP_INVITE || pushMessage.pushMessageType == PushMessageType.PUSH_MESSAGE_TYPE_VOIP_BYE)) {
                     RequestBody voipRequestBody = RequestBody.buildVoipRequestBody(pushMessage);
-                    String response = httpPost(this.pushUrl, jwt, 10, voipRequestBody.toString(), 10000, 10000);
+                    response = httpPost(this.pushUrl, jwt, 10, voipRequestBody.toString(), 10000, 10000);
                     LOG.info("Push voip message to {} response {}", pushMessage.getDeviceToken(), response);
                 } else {
                     RequestBody alertRequestBody = RequestBody.buildAlertRequestBody(pushMessage);
-                    String response = httpPost(this.pushUrl, jwt, 0, alertRequestBody.toString(), 10000, 10000);
+                    response = httpPost(this.pushUrl, jwt, 0, alertRequestBody.toString(), 10000, 10000);
                     LOG.info("Push alert message to {} response {}", pushMessage.getDeviceToken(), response);
                 }
-                if (statisticsService != null) {
-                    statisticsService.recordSuccess("hm");
-                }
+                checkHmResponse(response, pushMessage, "hm");
             } catch (NoSuchAlgorithmException | InvalidKeySpecException | IOException e) {
-                e.printStackTrace();
+                LOG.error("HM push error", e);
                 if (statisticsService != null) {
                     statisticsService.recordFail("hm");
+                }
+                if (pushRecordService != null) {
+                    pushRecordService.saveRecord(pushMessage, "hm", false, e.getMessage());
                 }
             }
         });
 
         return "OK";
+    }
+
+    private void checkHmResponse(String response, PushMessage pushMessage, String platform) {
+        try {
+            JSONObject respObj = JSONObject.parseObject(response);
+            if (respObj != null && respObj.containsKey("code") && !"80000000".equals(respObj.getString("code"))) {
+                String error = respObj.getString("code") + " - " + respObj.getString("msg");
+                if (statisticsService != null) {
+                    statisticsService.recordFail(platform);
+                }
+                if (pushRecordService != null) {
+                    pushRecordService.saveRecord(pushMessage, platform, false, error);
+                }
+                throw new RuntimeException("HM push failed: " + error);
+            }
+            if (statisticsService != null) {
+                statisticsService.recordSuccess(platform);
+            }
+            if (pushRecordService != null) {
+                pushRecordService.saveRecord(pushMessage, platform, true, null);
+            }
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            LOG.error("Failed to parse HM response: {}", response, e);
+            if (statisticsService != null) {
+                statisticsService.recordSuccess(platform);
+            }
+            if (pushRecordService != null) {
+                pushRecordService.saveRecord(pushMessage, platform, true, null);
+            }
+        }
     }
 
     private String httpPost(String httpUrl, String jwt, int pushType, String data, int connectTimeout, int readTimeout) throws IOException {
