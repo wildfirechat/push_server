@@ -10,9 +10,17 @@ import cn.wildfirechat.push.admin.repository.ConfigVersionRepository;
 import cn.wildfirechat.push.admin.repository.PushConfigRepository;
 import cn.wildfirechat.push.admin.repository.PushFileRepository;
 import cn.wildfirechat.push.android.fcm.FCMPush;
+import cn.wildfirechat.push.android.hms.HMSConfig;
+import cn.wildfirechat.push.android.honor.HonorConfig;
+import cn.wildfirechat.push.android.oppo.OppoConfig;
+import cn.wildfirechat.push.android.vivo.VivoConfig;
+import cn.wildfirechat.push.android.xiaomi.XiaomiConfig;
+import cn.wildfirechat.push.getui.GetuiConfig;
+import cn.wildfirechat.push.hm.HMConfig;
 import cn.wildfirechat.push.hm.HMPushServiceImpl;
 import cn.wildfirechat.push.ios.ApnsConfig;
 import cn.wildfirechat.push.ios.ApnsServer;
+import cn.wildfirechat.push.unipush.UniPushConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -143,6 +151,22 @@ public class ConfigService {
     @Autowired
     private HMPushServiceImpl hmPushService;
     @Autowired
+    private XiaomiConfig xiaomiConfig;
+    @Autowired
+    private HMSConfig hmsConfig;
+    @Autowired
+    private HonorConfig honorConfig;
+    @Autowired
+    private OppoConfig oppoConfig;
+    @Autowired
+    private VivoConfig vivoConfig;
+    @Autowired
+    private GetuiConfig getuiConfig;
+    @Autowired
+    private HMConfig hmConfig;
+    @Autowired
+    private UniPushConfig uniPushConfig;
+    @Autowired
     private PushFileRepository pushFileRepository;
     @Autowired
     private BCryptPasswordEncoder passwordEncoder;
@@ -154,15 +178,15 @@ public class ConfigService {
     public void init() {
         configBeans.put("apns", apnsConfig);
         configBeans.put("fcm", fcmPush);
-        configBeans.put("getui", null);
-        configBeans.put("hm", null);
-        configBeans.put("hms", null);
-        configBeans.put("honor", null);
+        configBeans.put("getui", getuiConfig);
+        configBeans.put("hm", hmConfig);
+        configBeans.put("hms", hmsConfig);
+        configBeans.put("honor", honorConfig);
         configBeans.put("meizu", null);
-        configBeans.put("oppo", null);
-        configBeans.put("vivo", null);
-        configBeans.put("xiaomi", null);
-        configBeans.put("unipush", null);
+        configBeans.put("oppo", oppoConfig);
+        configBeans.put("vivo", vivoConfig);
+        configBeans.put("xiaomi", xiaomiConfig);
+        configBeans.put("unipush", uniPushConfig);
 
         // 配置完全通过后台页面管理，不再从本地 properties 文件导入
 
@@ -203,6 +227,7 @@ public class ConfigService {
         for (String platform : PLATFORMS) {
             Map<String, String> config = result.computeIfAbsent(platform, k -> new LinkedHashMap<>());
             fillDefaultFields(platform, config);
+            result.put(platform, sortConfigByDefaultOrder(platform, config));
         }
         return result;
     }
@@ -214,7 +239,7 @@ public class ConfigService {
             map.put(pc.getConfigKey(), pc.getConfigValue());
         }
         fillDefaultFields(platform, map);
-        return map;
+        return sortConfigByDefaultOrder(platform, map);
     }
 
     private void fillDefaultFields(String platform, Map<String, String> config) {
@@ -225,6 +250,23 @@ public class ConfigService {
                 config.put(entry.getKey(), entry.getValue());
             }
         }
+    }
+
+    private Map<String, String> sortConfigByDefaultOrder(String platform, Map<String, String> config) {
+        Map<String, String> defaults = DEFAULT_CONFIG_FIELDS.get(platform);
+        if (defaults == null || config == null) return config;
+        Map<String, String> ordered = new LinkedHashMap<>();
+        for (String key : defaults.keySet()) {
+            if (config.containsKey(key)) {
+                ordered.put(key, config.get(key));
+            }
+        }
+        for (Map.Entry<String, String> entry : config.entrySet()) {
+            if (!ordered.containsKey(entry.getKey())) {
+                ordered.put(entry.getKey(), entry.getValue());
+            }
+        }
+        return ordered;
     }
 
     @Transactional

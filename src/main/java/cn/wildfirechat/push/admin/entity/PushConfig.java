@@ -15,7 +15,8 @@ public class PushConfig {
     @Column(name = "config_key", length = 100)
     private String configKey;
 
-    @Column(name = "config_value", length = 2000)
+    @Lob
+    @Column(name = "config_value")
     private String configValue;
 
     @Column(name = "updated_at")

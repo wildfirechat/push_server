@@ -86,7 +86,7 @@ public class VivoPush {
             Sender tokenSender = new Sender(mConfig.getAppSecret());
             // 升级点9：使用新的getToken接口
             Result tokenResult = tokenSender.getToken(
-                    mConfig.getAppId(),       // 需要配置appId
+                    Integer.parseInt(mConfig.getAppId()),       // 需要配置appId
                     mConfig.getAppKey()        // 需要配置appKey
             );
 

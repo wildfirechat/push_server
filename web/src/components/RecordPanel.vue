@@ -83,10 +83,14 @@ import { api } from '../api.js'
 export default {
   name: 'RecordPanel',
   data() {
+    const now = new Date()
+    const pad = n => n.toString().padStart(2, '0')
+    const toDatetimeLocal = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
     return {
       filters: {
-        startTime: '',
-        endTime: '',
+        startTime: toDatetimeLocal(startOfDay),
+        endTime: toDatetimeLocal(now),
         success: '',
         userId: ''
       },
@@ -113,8 +117,8 @@ export default {
         const params = new URLSearchParams()
         params.append('page', page)
         params.append('size', this.size)
-        if (this.filters.startTime) params.append('startTime', this.filters.startTime + ':00')
-        if (this.filters.endTime) params.append('endTime', this.filters.endTime + ':00')
+        if (this.filters.startTime) params.append('startTime', this.filters.startTime.replace('T', ' ') + ':00')
+        if (this.filters.endTime) params.append('endTime', this.filters.endTime.replace('T', ' ') + ':00')
         if (this.filters.success !== '') params.append('success', this.filters.success)
         if (this.filters.userId) params.append('userId', this.filters.userId)
 

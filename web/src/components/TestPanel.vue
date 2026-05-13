@@ -19,12 +19,12 @@
 
       <div class="form-row">
         <label>设备 Token</label>
-        <textarea v-model="form.deviceToken" rows="3" placeholder="请输入设备推送Token"></textarea>
+        <input v-model="form.deviceToken" placeholder="请输入设备推送Token" />
       </div>
 
       <div class="form-row">
         <label>推送内容</label>
-        <input v-model="form.pushContent" placeholder="请输入推送消息内容" />
+        <textarea v-model="form.pushContent" rows="3" placeholder="请输入推送消息内容"></textarea>
       </div>
 
       <div class="form-row">
@@ -77,6 +77,19 @@ export default {
       result: null
     }
   },
+  watch: {
+    'form.platform'(newVal, oldVal) {
+      if (oldVal) {
+        this.savePlatformForm(oldVal)
+      }
+      this.form.deviceToken = ''
+      this.form.packageName = 'cn.wildfire.chat'
+      this.form.env = 'development'
+      if (newVal) {
+        this.loadPlatformForm(newVal)
+      }
+    }
+  },
   mounted() {
     this.loadPlatforms()
     this.loadForm()
@@ -94,10 +107,28 @@ export default {
     },
     loadForm() {
       try {
-        const saved = localStorage.getItem('push_test_form')
+        const common = localStorage.getItem('push_test_common')
+        if (common) {
+          const parsed = JSON.parse(common)
+          if (parsed.platform) this.form.platform = parsed.platform
+          if (parsed.pushContent) this.form.pushContent = parsed.pushContent
+        }
+        if (this.form.platform) {
+          this.loadPlatformForm(this.form.platform)
+        }
+      } catch (e) {
+        // ignore parse error
+      }
+    },
+    loadPlatformForm(platform) {
+      if (!platform) return
+      try {
+        const saved = localStorage.getItem('push_test_' + platform)
         if (saved) {
           const parsed = JSON.parse(saved)
-          Object.assign(this.form, parsed)
+          if (parsed.deviceToken !== undefined) this.form.deviceToken = parsed.deviceToken
+          if (parsed.packageName !== undefined) this.form.packageName = parsed.packageName
+          if (parsed.env !== undefined) this.form.env = parsed.env
         }
       } catch (e) {
         // ignore parse error
@@ -105,7 +136,26 @@ export default {
     },
     saveForm() {
       try {
-        localStorage.setItem('push_test_form', JSON.stringify(this.form))
+        localStorage.setItem('push_test_common', JSON.stringify({
+          platform: this.form.platform,
+          pushContent: this.form.pushContent
+        }))
+        this.savePlatformForm(this.form.platform)
+      } catch (e) {
+        // ignore storage error
+      }
+    },
+    savePlatformForm(platform) {
+      if (!platform) return
+      try {
+        const data = {
+          deviceToken: this.form.deviceToken,
+          packageName: this.form.packageName
+        }
+        if (platform === 'apns') {
+          data.env = this.form.env
+        }
+        localStorage.setItem('push_test_' + platform, JSON.stringify(data))
       } catch (e) {
         // ignore storage error
       }

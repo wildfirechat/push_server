@@ -74,7 +74,7 @@ public class XiaomiPush {
         }
 
         Result result = sender.send(message, token, 3);
-        if (result.getErrorCode() != null && !result.getErrorCode().toString().equals("0")) {
+        if (result.getErrorCode() != null && result.getErrorCode().getValue() != 0) {
             throw new RuntimeException("Xiaomi push failed: " + result.getErrorCode() + " - " + result.getReason());
         }
         LOG.info("Server response: MessageId: " + result.getMessageId()

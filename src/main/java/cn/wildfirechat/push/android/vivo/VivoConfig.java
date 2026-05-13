@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "vivo")
 public class VivoConfig {
     private String appSecret;
-    private int appId;
+    private String appId;
     private String appKey;
 
     public String getAppSecret() {
@@ -18,11 +18,11 @@ public class VivoConfig {
         this.appSecret = appSecret;
     }
 
-    public int getAppId() {
+    public String getAppId() {
         return appId;
     }
 
-    public void setAppId(int appId) {
+    public void setAppId(String appId) {
         this.appId = appId;
     }
 
