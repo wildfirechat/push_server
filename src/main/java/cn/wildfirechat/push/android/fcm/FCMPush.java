@@ -3,6 +3,8 @@ package cn.wildfirechat.push.android.fcm;
 import cn.wildfirechat.push.PushMessage;
 import cn.wildfirechat.push.PushMessageType;
 import cn.wildfirechat.push.Utility;
+import cn.wildfirechat.push.admin.entity.PushFile;
+import cn.wildfirechat.push.admin.repository.PushFileRepository;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
@@ -15,13 +17,16 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import javax.annotation.PostConstruct;
-import java.io.FileInputStream;
+import java.io.ByteArrayInputStream;
 
 @Component
 public class FCMPush {
     private static final Logger LOG = LoggerFactory.getLogger(FCMPush.class);
     @Autowired
     private FCMConfig mConfig;
+
+    @Autowired
+    private PushFileRepository pushFileRepository;
 
     @PostConstruct
     private void init() throws Exception {
@@ -46,7 +51,12 @@ public class FCMPush {
             LOG.warn("FCM credentialsPath is not configured");
             return;
         }
-        try (FileInputStream refreshToken = new FileInputStream(credentialsPath)) {
+        java.util.Optional<PushFile> fileOpt = pushFileRepository.findByPlatformAndField("fcm", "fcm.credentialsPath");
+        if (!fileOpt.isPresent() || fileOpt.get().getContent() == null) {
+            LOG.warn("FCM credentials content not found in database");
+            return;
+        }
+        try (ByteArrayInputStream refreshToken = new ByteArrayInputStream(fileOpt.get().getContent())) {
             FirebaseOptions.Builder optionsBuilder = FirebaseOptions.builder()
                     .setCredentials(GoogleCredentials.fromStream(refreshToken));
             // 如果配置了 databaseUrl，则设置

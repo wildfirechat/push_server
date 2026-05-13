@@ -211,7 +211,6 @@ public class ConfigService {
 
     private void refreshAllLocalBeans() {
         for (String platform : CONFIG_PREFIXES.keySet()) {
-            ensureFilesOnDisk(platform);
             refreshBean(platform);
             refreshPushService(platform);
         }
@@ -362,31 +361,7 @@ public class ConfigService {
         pf.setFilename(filename);
         pf.setContent(content);
         pushFileRepository.save(pf);
-        writeFileToDisk(platform, filename, content);
-        LOG.info("Saved file to DB and disk: {}/{}", platform, filename);
-    }
-
-    public void ensureFilesOnDisk(String platform) {
-        List<PushFile> files = pushFileRepository.findByPlatform(platform);
-        for (PushFile file : files) {
-            if (file.getContent() != null && file.getFilename() != null) {
-                writeFileToDisk(file.getPlatform(), file.getFilename(), file.getContent());
-            }
-        }
-    }
-
-    private void writeFileToDisk(String platform, String filename, byte[] content) {
-        String baseDir = new File("").getAbsolutePath();
-        File dir = new File(baseDir + File.separator + platform);
-        if (!dir.exists()) {
-            dir.mkdirs();
-        }
-        File file = new File(dir, filename);
-        try (FileOutputStream fos = new FileOutputStream(file)) {
-            fos.write(content);
-        } catch (IOException e) {
-            LOG.error("Failed to write file to disk: {}", file.getAbsolutePath(), e);
-        }
+        LOG.info("Saved file to DB: {}/{}", platform, filename);
     }
 
     public String validateConfig(String platform, Map<String, String> config) {
@@ -431,12 +406,12 @@ public class ConfigService {
         if (isEmpty(config.get("apns.auth_key_path")) || isEmpty(config.get("apns.key_id")) || isEmpty(config.get("apns.team_id"))) {
             return "APNs 尚未配置 p8 密钥，请先上传 auth_key_path 并填写 key_id 和 team_id";
         }
-        String p8Path = config.get("apns.auth_key_path");
-        if (!new File(p8Path).exists()) {
-            return "APNs p8 密钥文件不存在";
+        Optional<PushFile> fileOpt = pushFileRepository.findByPlatformAndField("apns", "apns.auth_key_path");
+        if (!fileOpt.isPresent() || fileOpt.get().getContent() == null) {
+            return "APNs p8 密钥未上传";
         }
         try {
-            ApnsSigningKey.loadFromPkcs8File(new File(p8Path), config.get("apns.team_id"), config.get("apns.key_id"));
+            ApnsSigningKey.loadFromInputStream(new java.io.ByteArrayInputStream(fileOpt.get().getContent()), config.get("apns.team_id"), config.get("apns.key_id"));
         } catch (Exception e) {
             return "APNs p8 密钥文件无效";
         }
@@ -448,10 +423,11 @@ public class ConfigService {
         if (isEmpty(credPath)) {
             return "FCM 尚未配置 credentialsPath";
         }
-        if (!new File(credPath).exists()) {
-            return "FCM 凭证文件不存在";
+        Optional<PushFile> fileOpt = pushFileRepository.findByPlatformAndField("fcm", "fcm.credentialsPath");
+        if (!fileOpt.isPresent() || fileOpt.get().getContent() == null) {
+            return "FCM 凭证文件未上传";
         }
-        try (FileInputStream is = new FileInputStream(credPath)) {
+        try (java.io.ByteArrayInputStream is = new java.io.ByteArrayInputStream(fileOpt.get().getContent())) {
             GoogleCredentials.fromStream(is);
         } catch (Exception e) {
             return "FCM 凭证文件格式无效";

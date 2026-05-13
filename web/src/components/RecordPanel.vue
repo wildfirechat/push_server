@@ -87,10 +87,11 @@ export default {
     const pad = n => n.toString().padStart(2, '0')
     const toDatetimeLocal = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59)
     return {
       filters: {
         startTime: toDatetimeLocal(startOfDay),
-        endTime: toDatetimeLocal(now),
+        endTime: toDatetimeLocal(endOfDay),
         success: '',
         userId: ''
       },
@@ -139,7 +140,12 @@ export default {
       }
     },
     resetFilters() {
-      this.filters = { startTime: '', endTime: '', success: '', userId: '' }
+      const now = new Date()
+      const pad = n => n.toString().padStart(2, '0')
+      const toDatetimeLocal = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59)
+      this.filters = { startTime: toDatetimeLocal(startOfDay), endTime: toDatetimeLocal(endOfDay), success: '', userId: '' }
       this.loadRecords(1)
     },
     formatTime(iso) {

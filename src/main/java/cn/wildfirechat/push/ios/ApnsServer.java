@@ -5,6 +5,8 @@ import cn.wildfirechat.push.PushMessageType;
 import cn.wildfirechat.push.Utility;
 import cn.wildfirechat.push.admin.PushRecordService;
 import cn.wildfirechat.push.admin.StatisticsService;
+import cn.wildfirechat.push.admin.entity.PushFile;
+import cn.wildfirechat.push.admin.repository.PushFileRepository;
 import com.turo.pushy.apns.*;
 import com.turo.pushy.apns.auth.ApnsSigningKey;
 import com.turo.pushy.apns.metrics.micrometer.MicrometerApnsClientMetricsListener;
@@ -22,7 +24,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import javax.annotation.PostConstruct;
-import java.io.File;
+import java.io.ByteArrayInputStream;
 import java.util.*;
 
 @Component
@@ -50,6 +52,9 @@ public class ApnsServer  {
 
     @Autowired
     private PushRecordService pushRecordService;
+
+    @Autowired
+    private PushFileRepository pushFileRepository;
 
     @PostConstruct
     private void init() {
@@ -95,28 +100,35 @@ public class ApnsServer  {
             return;
         }
 
+        Optional<PushFile> fileOpt = pushFileRepository.findByPlatformAndField("apns", "apns.auth_key_path");
+        if (!fileOpt.isPresent() || fileOpt.get().getContent() == null) {
+            LOG.warn("APNs p8 key content not found in database, skip building clients");
+            return;
+        }
+        byte[] keyContent = fileOpt.get().getContent();
+
         try {
             productSvc = new ApnsClientBuilder()
                     .setApnsServer(ApnsClientBuilder.PRODUCTION_APNS_HOST)
-                    .setSigningKey(ApnsSigningKey.loadFromPkcs8File(new File(mConfig.authKeyPath), mConfig.teamId, mConfig.keyId))
+                    .setSigningKey(ApnsSigningKey.loadFromInputStream(new ByteArrayInputStream(keyContent), mConfig.teamId, mConfig.keyId))
                     .setMetricsListener(productMetricsListener)
                     .build();
 
             developSvc = new ApnsClientBuilder()
                     .setApnsServer(ApnsClientBuilder.DEVELOPMENT_APNS_HOST)
-                    .setSigningKey(ApnsSigningKey.loadFromPkcs8File(new File(mConfig.authKeyPath), mConfig.teamId, mConfig.keyId))
+                    .setSigningKey(ApnsSigningKey.loadFromInputStream(new ByteArrayInputStream(keyContent), mConfig.teamId, mConfig.keyId))
                     .setMetricsListener(developMetricsListener)
                     .build();
 
             if (mConfig.voipFeature) {
                 productVoipSvc = new ApnsClientBuilder()
                         .setApnsServer(ApnsClientBuilder.PRODUCTION_APNS_HOST)
-                        .setSigningKey(ApnsSigningKey.loadFromPkcs8File(new File(mConfig.authKeyPath), mConfig.teamId, mConfig.keyId))
+                        .setSigningKey(ApnsSigningKey.loadFromInputStream(new ByteArrayInputStream(keyContent), mConfig.teamId, mConfig.keyId))
                         .setMetricsListener(productMetricsListener)
                         .build();
                 developVoipSvc = new ApnsClientBuilder()
                         .setApnsServer(ApnsClientBuilder.DEVELOPMENT_APNS_HOST)
-                        .setSigningKey(ApnsSigningKey.loadFromPkcs8File(new File(mConfig.authKeyPath), mConfig.teamId, mConfig.keyId))
+                        .setSigningKey(ApnsSigningKey.loadFromInputStream(new ByteArrayInputStream(keyContent), mConfig.teamId, mConfig.keyId))
                         .setMetricsListener(developMetricsListener)
                         .build();
             }

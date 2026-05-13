@@ -2,8 +2,10 @@ package cn.wildfirechat.push.admin;
 
 import cn.wildfirechat.push.PushMessage;
 import cn.wildfirechat.push.admin.entity.AdminUser;
+import cn.wildfirechat.push.admin.entity.PushFile;
 import cn.wildfirechat.push.admin.entity.PushRecord;
 import cn.wildfirechat.push.admin.repository.AdminUserRepository;
+import cn.wildfirechat.push.admin.repository.PushFileRepository;
 import cn.wildfirechat.push.android.AndroidPushService;
 import cn.wildfirechat.push.hm.HMPushService;
 import cn.wildfirechat.push.ios.IOSPushService;
@@ -18,7 +20,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
-import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -48,6 +49,9 @@ public class AdminController {
 
     @Autowired
     private HMPushService hmPushService;
+
+    @Autowired
+    private PushFileRepository pushFileRepository;
 
     @Autowired
     private PushRecordService pushRecordService;
@@ -312,10 +316,10 @@ public class AdminController {
             return result;
         }
         String ext = originalName.substring(lastDot).toLowerCase();
-        Set<String> allowedExts = new HashSet<>(Arrays.asList(".p12", ".p8", ".json"));
+        Set<String> allowedExts = new HashSet<>(Arrays.asList(".p8", ".json"));
         if (!allowedExts.contains(ext)) {
             result.put("code", 400);
-            result.put("message", "只允许上传 .p12, .p8, .json 文件");
+            result.put("message", "只允许上传 .p8, .json 文件");
             return result;
         }
 
@@ -489,8 +493,9 @@ public class AdminController {
                 if (isEmpty(credPath)) {
                     return "FCM 推送尚未配置 credentialsPath（服务账号 JSON 文件），请先完成配置";
                 }
-                if (!new File(credPath).exists()) {
-                    return "FCM 凭证文件不存在: " + credPath + "，请重新上传";
+                java.util.Optional<PushFile> fcmFile = pushFileRepository.findByPlatformAndField("fcm", "fcm.credentialsPath");
+                if (!fcmFile.isPresent() || fcmFile.get().getContent() == null) {
+                    return "FCM 凭证文件未上传，请重新上传";
                 }
                 break;
             case "getui":
@@ -516,9 +521,9 @@ public class AdminController {
                 if (isEmpty(config.get("apns.auth_key_path")) || isEmpty(config.get("apns.key_id")) || isEmpty(config.get("apns.team_id"))) {
                     return "APNs 尚未配置 p8 密钥，请先上传 auth_key_path 并填写 key_id 和 team_id";
                 }
-                String p8Path = config.get("apns.auth_key_path");
-                if (!new File(p8Path).exists()) {
-                    return "APNs p8 密钥文件不存在: " + p8Path + "，请重新上传";
+                java.util.Optional<PushFile> apnsFile = pushFileRepository.findByPlatformAndField("apns", "apns.auth_key_path");
+                if (!apnsFile.isPresent() || apnsFile.get().getContent() == null) {
+                    return "APNs p8 密钥未上传，请重新上传";
                 }
                 break;
             case "hm":
@@ -554,6 +559,12 @@ public class AdminController {
             }
             if (endTime != null && !endTime.isEmpty()) {
                 end = sdf.parse(endTime);
+                // 前端 datetime-local 只精确到分钟，补全为 59 秒，确保包含当前分钟内全部记录
+                java.util.Calendar cal = java.util.Calendar.getInstance();
+                cal.setTime(end);
+                cal.set(java.util.Calendar.SECOND, 59);
+                cal.set(java.util.Calendar.MILLISECOND, 999);
+                end = cal.getTime();
             }
             Page<PushRecord> pageResult = pushRecordService.getRecords(start, end, success, userId, page, size);
             result.put("code", 200);
