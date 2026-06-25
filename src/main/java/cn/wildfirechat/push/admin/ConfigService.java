@@ -13,7 +13,9 @@ import cn.wildfirechat.push.android.fcm.FCMPush;
 import cn.wildfirechat.push.android.hms.HMSConfig;
 import cn.wildfirechat.push.android.honor.HonorConfig;
 import cn.wildfirechat.push.android.oppo.OppoConfig;
+import cn.wildfirechat.push.android.oppo.OppoPush;
 import cn.wildfirechat.push.android.vivo.VivoConfig;
+import cn.wildfirechat.push.android.vivo.VivoPush;
 import cn.wildfirechat.push.android.xiaomi.XiaomiConfig;
 import cn.wildfirechat.push.getui.GetuiConfig;
 import cn.wildfirechat.push.hm.HMConfig;
@@ -159,7 +161,11 @@ public class ConfigService {
     @Autowired
     private OppoConfig oppoConfig;
     @Autowired
+    private OppoPush oppoPush;
+    @Autowired
     private VivoConfig vivoConfig;
+    @Autowired
+    private VivoPush vivoPush;
     @Autowired
     private GetuiConfig getuiConfig;
     @Autowired
@@ -344,6 +350,12 @@ public class ConfigService {
                     break;
                 case "hm":
                     if (hmPushService != null) hmPushService.refresh();
+                    break;
+                case "oppo":
+                    if (oppoPush != null) oppoPush.refresh();
+                    break;
+                case "vivo":
+                    if (vivoPush != null) vivoPush.refresh();
                     break;
                 default:
                     break;

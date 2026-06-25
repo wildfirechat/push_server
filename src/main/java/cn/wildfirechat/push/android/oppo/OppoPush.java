@@ -13,8 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
-import javax.annotation.PostConstruct;
-
 @Component
 public class OppoPush {
     private static final Logger LOG = LoggerFactory.getLogger(OppoPush.class);
@@ -23,18 +21,23 @@ public class OppoPush {
     @Autowired
     OppoConfig mConfig;
 
-    private Sender mSender;
+    private volatile Sender mSender;
 
-    @PostConstruct
-    private void init() {
+    /**
+     * 根据最新配置重建 Sender。由 ConfigService 在启动初始化、后台改配置等时调用，
+     */
+    public synchronized void refresh() {
         try {
             if (StringUtils.isEmpty(mConfig.getAppKey()) || StringUtils.isEmpty(mConfig.getAppSecret())) {
                 LOG.info("OppoPush appKey or appSecret is not configured, skip init");
+                mSender = null;
                 return;
             }
             mSender = new Sender(mConfig.getAppKey(), mConfig.getAppSecret());
+            LOG.info("OppoPush sender initialized");
         } catch (Exception e) {
             LOG.error("OppoPush init failed", e);
+            mSender = null;
         }
     }
 

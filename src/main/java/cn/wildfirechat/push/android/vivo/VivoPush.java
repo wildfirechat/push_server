@@ -24,7 +24,17 @@ public class VivoPush {
     @Autowired
     VivoConfig mConfig;
 
-    private String authToken;
+    private volatile String authToken;
+
+    /**
+     * 配置变更时清除缓存的 authToken，使下次推送用新的 appId/appKey/appSecret 重新获取，
+     * 避免改配置后仍使用旧 token。
+     */
+    public synchronized void refresh() {
+        authToken = null;
+        tokenExpiredTime = 0;
+        LOG.info("VivoPush token invalidated");
+    }
 
     public void push(PushMessage pushMessage) throws Exception {
         if (StringUtils.isEmpty(mConfig.getAppId()) || "0".equals(mConfig.getAppId())
