@@ -484,8 +484,8 @@ public class AdminController {
                 }
                 break;
             case "oppo":
-                if (isEmpty(config.get("oppo.AppKey")) || isEmpty(config.get("oppo.AppSecret"))) {
-                    return "OPPO 推送尚未配置 AppKey 或 AppSecret，请先完成配置";
+                if (isEmpty(config.get("oppo.appKey")) || isEmpty(config.get("oppo.appSecret"))) {
+                    return "OPPO 推送尚未配置 appKey 或 appSecret，请先完成配置";
                 }
                 break;
             case "fcm":

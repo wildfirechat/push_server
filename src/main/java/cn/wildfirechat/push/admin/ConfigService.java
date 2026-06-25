@@ -114,8 +114,8 @@ public class ConfigService {
         DEFAULT_CONFIG_FIELDS.put("honor", honorDefaults);
 
         Map<String, String> oppoDefaults = new LinkedHashMap<>();
-        oppoDefaults.put("oppo.AppKey", "");
-        oppoDefaults.put("oppo.AppSecret", "");
+        oppoDefaults.put("oppo.appKey", "");
+        oppoDefaults.put("oppo.appSecret", "");
         DEFAULT_CONFIG_FIELDS.put("oppo", oppoDefaults);
 
         Map<String, String> vivoDefaults = new LinkedHashMap<>();
@@ -391,7 +391,7 @@ public class ConfigService {
                     return (isEmpty(config.get("vivo.appId")) || "0".equals(config.get("vivo.appId")) || isEmpty(config.get("vivo.appKey")) || isEmpty(config.get("vivo.appSecret")))
                             ? "vivo 推送 appId、appKey 或 appSecret 不能为空" : null;
                 case "oppo":
-                    return (isEmpty(config.get("oppo.AppKey")) || isEmpty(config.get("oppo.AppSecret")))
+                    return (isEmpty(config.get("oppo.appKey")) || isEmpty(config.get("oppo.appSecret")))
                             ? "OPPO 推送 AppKey 或 AppSecret 不能为空" : null;
                 case "getui":
                     return (isEmpty(config.get("getui.appId")) || isEmpty(config.get("getui.appKey")) || isEmpty(config.get("getui.masterSecret")))
