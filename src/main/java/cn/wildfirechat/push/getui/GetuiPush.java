@@ -36,6 +36,19 @@ public class GetuiPush {
 
     @PostConstruct
     public void init() {
+        buildPushApi();
+    }
+
+    /**
+     * 配置变更时重建 PushApi，使后续推送使用新配置。
+     */
+    public synchronized void refresh() {
+        LOG.info("GetuiPush refreshing...");
+        this.pushApi = null;
+        buildPushApi();
+    }
+
+    private synchronized void buildPushApi() {
         try{
             if (StringUtils.isEmpty(mConfig.getAppId()) || StringUtils.isEmpty(mConfig.getAppKey()) || StringUtils.isEmpty(mConfig.getMasterSecret())) {
                 LOG.info("GetuiPush config is not complete, skip init");
@@ -49,8 +62,11 @@ public class GetuiPush {
             apiConfiguration.setAppKey(mConfig.getAppKey());
             apiConfiguration.setMasterSecret(mConfig.getMasterSecret());
             // 接口调用前缀，请查看文档: 接口调用规范 -> 接口前缀, 可不填写appId
-            apiConfiguration.setDomain("https://restapi.getui.com/v2/");
-    //        apiConfiguration.setDomain(mConfig.getDomain());
+            if (!StringUtils.isEmpty(mConfig.getDomain())) {
+                apiConfiguration.setDomain(mConfig.getDomain());
+            } else {
+                apiConfiguration.setDomain("https://restapi.getui.com/v2/");
+            }
             // 实例化ApiHelper对象，用于创建接口对象
             ApiHelper apiHelper = ApiHelper.build(apiConfiguration);
             // 创建对象，建议复用。目前有PushApi、StatisticApi、UserApi
@@ -61,6 +77,10 @@ public class GetuiPush {
     }
 
     public void push(PushMessage pushMessage, boolean isAndroid) {
+        if (this.pushApi == null) {
+            LOG.warn("GetuiPush pushApi is not initialized, skip push");
+            return;
+        }
         String[] arr = Utility.getPushTitleAndContent(pushMessage);
         String title = arr[0];
         String body = arr[1];

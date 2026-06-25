@@ -12,12 +12,15 @@ import cn.wildfirechat.push.admin.repository.PushFileRepository;
 import cn.wildfirechat.push.android.fcm.FCMPush;
 import cn.wildfirechat.push.android.hms.HMSConfig;
 import cn.wildfirechat.push.android.honor.HonorConfig;
+import cn.wildfirechat.push.android.hms.HMSPush;
+import cn.wildfirechat.push.android.honor.HonorPush;
 import cn.wildfirechat.push.android.oppo.OppoConfig;
 import cn.wildfirechat.push.android.oppo.OppoPush;
 import cn.wildfirechat.push.android.vivo.VivoConfig;
 import cn.wildfirechat.push.android.vivo.VivoPush;
 import cn.wildfirechat.push.android.xiaomi.XiaomiConfig;
 import cn.wildfirechat.push.getui.GetuiConfig;
+import cn.wildfirechat.push.getui.GetuiPush;
 import cn.wildfirechat.push.hm.HMConfig;
 import cn.wildfirechat.push.hm.HMPushServiceImpl;
 import cn.wildfirechat.push.ios.ApnsConfig;
@@ -166,6 +169,12 @@ public class ConfigService {
     private VivoConfig vivoConfig;
     @Autowired
     private VivoPush vivoPush;
+    @Autowired
+    private HMSPush hmsPush;
+    @Autowired
+    private HonorPush honorPush;
+    @Autowired
+    private GetuiPush getuiPush;
     @Autowired
     private GetuiConfig getuiConfig;
     @Autowired
@@ -356,6 +365,15 @@ public class ConfigService {
                     break;
                 case "vivo":
                     if (vivoPush != null) vivoPush.refresh();
+                    break;
+                case "hms":
+                    if (hmsPush != null) hmsPush.refresh();
+                    break;
+                case "honor":
+                    if (honorPush != null) honorPush.refresh();
+                    break;
+                case "getui":
+                    if (getuiPush != null) getuiPush.refresh();
                     break;
                 default:
                     break;

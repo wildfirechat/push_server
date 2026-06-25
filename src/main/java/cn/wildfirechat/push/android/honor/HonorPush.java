@@ -32,6 +32,15 @@ public class HonorPush {
     private HonorConfig mConfig;
 
     /**
+     * 配置变更时清除缓存的 accessToken，使下次推送用新配置重新获取 token。
+     */
+    public synchronized void refresh() {
+        this.accessToken = null;
+        this.tokenExpiredTime = 0;
+        LOG.info("HonorPush token invalidated");
+    }
+
+    /**
      * 检查token是否有效
      *
      * @return true if token is valid and not expired
